@@ -1,0 +1,91 @@
+<div class="">
+	<div class="page-center" *ngIf="showCenterScreen">
+		<div class="page-center-block" *ngIf="showScreenStart">
+			<div class="title-s3">
+				<h3>画面共有テスト</h3>
+			</div>
+			<div class="center-button-s" (click)="start()">開始</div>
+		</div>
+		<div class="page-center-block" *ngIf="showScreenMenu">
+			<div class="list-block-s1" *ngIf="showCreateNow">
+				<div class="cp_iptxt">
+					<input
+						type="text"
+						placeholder="Insert a title for the session"
+						(keypress)="checkEnterShare($event)"
+						[(ngModel)]="desc" />
+					<i class="fa fa-user fa-lg fa-fw" aria-hidden="true"></i>
+				</div>
+				<div class="button-s" (click)="preShareScreen()">画面共有</div>
+			</div>
+			<div class="list-block-s1" *ngIf="showJoinNow">
+				<div class="cp_iptxt">
+					<input
+						type="text"
+						placeholder="Insert the numeric session identifier"
+						(keypress)="checkEnterJoin($event)"
+						[(ngModel)]="roomid" />
+					<i class="fa fa-user fa-lg fa-fw" aria-hidden="true"></i>
+				</div>
+				<div class="button-s" (click)="joinScreen()">共有に参加</div>
+			</div>
+		</div>
+		<div class="page-center-block" *ngIf="showScreenSelect">
+			<div class="list-block-s2">
+				<div class="button-m" (click)="setShareMode('screen')">画面を共有</div>
+				<div class="button-m" (click)="setShareMode('window')">アプリを共有</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="page-header" *ngIf="showHeaderScreen">
+		<div class="button-m" (click)="stop()">終了</div>
+		<div class="screen-header">
+			<span class="label label-info">
+				議題：{{title}}
+			</span>
+			<span class="label label-success">
+				部屋名：{{room}}
+			</span>
+		</div>
+	</div>
+
+	<div class="screen-view" id="room" *ngIf="showRoom">
+		<div class="screen-block" *ngIf="showScreenBlock"></div>
+		<div class="screen-body" id="screencapture">
+			<video
+				class="rounded centered" id="waitingvideo"
+				width="100%" height="100%"
+				*ngIf="showWaitingVideo" >
+			</video>
+			<video
+				class="rounded centered" id="screenvideo"
+				[attr.width]="myvideoState.width"
+				[attr.height]="myvideoState.height"
+				[attr.muted]="myvideoState.muted"
+				autoplay playsinline 
+				(playing)="videoPlaying()">
+			</video>
+		</div>
+	</div>
+
+</div>
+
+<div class="page-tools" *ngIf="showScreenCapture">
+	<div>
+		<div class="button-s" (click)="captureScreen()">キャプチャ</div>
+	</div>
+	<div>
+		<ng-container *ngFor="let cap of getAllCapture(); index as i">
+		<div (click)="startCaptureEdit(i)">
+			<span>{{i}}</span>
+			<img src="{{cap}}" width=180>
+		</div>
+		</ng-container>
+	</div>
+</div>
+
+<div class="page-editer" *ngIf="showCaptureEditer">
+	<img src="{{getCapture()}}">
+	<div>閉じる</div>
+</div>

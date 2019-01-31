@@ -1,0 +1,18 @@
+<div
+    class="confirmation-screen"
+    [@confirmationAnimation]="confirmation"
+    [style.zIndex]="zindex1"></div>
+<div
+    class="confirmation-window"
+    [@confirmationAnimation]="confirmation"
+    [style.zIndex]="zindex2">
+    <div class="confirmation-window-message">
+        {{confirmationMessage}}
+    </div>
+    <div
+        class="confirmation-window-accept-button"
+        (click)="accept()">実行</div>
+    <div
+        class="confirmation-window-reject-button"
+        (click)="reject()">取消</div>
+</div>

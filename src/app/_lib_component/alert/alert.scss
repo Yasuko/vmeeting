@@ -1,0 +1,27 @@
+.alert-window {
+    position: absolute;
+    width: 250px;
+    height: 70px;
+    right: 5%;
+    border: solid 1px #23ff65;
+    border-radius: 10px;
+    background-color: #d8d8d8;
+    padding: 10px;
+    opacity: 0;
+    z-index: 310;
+}
+.alert-window > div {
+    text-align: center;
+    width: 100%;
+}
+
+.alert-close-button {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+}
+.alert-reload-button {
+    position: absolute;
+    bottom: 5px;
+    left: 100px;
+}

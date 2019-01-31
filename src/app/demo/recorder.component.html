@@ -1,0 +1,83 @@
+<div class="container">
+	<div class="page-header">
+		<h1>Plugin Demo: Echo Test
+			<button
+				class="btn btn-default" id="start" (click)="stop()"
+				*ngIf="onStart; else elseStart">Stop</button>
+			<ng-template #elseStart>
+				<button class="btn btn-default" id="start" (click)="start()">Start</button>
+			</ng-template>
+		</h1>
+	</div>
+	<div id="videos">
+		<div class="row">
+			<div class="col-md-6">
+		<div class="panel-heading">
+			<h3 class="panel-title">Local Stream
+				<div class="pull-right">
+					<button
+						class="btn" id="toggleaudio" (click)="toggleAudio()"
+						*ngIf="onToggleaudio; else elseAudio">Enable audio</button>
+					<ng-template #elseAudio>
+						<button class="btn" id="toggleaudio" (click)="toggleAudio()">Disable audio</button>
+					</ng-template>
+
+					<button
+						class="btn" id="togglevideo" (click)="toggleVideo()"
+						*ngIf="onTogglevideo; else elseVideo">Enable video</button>
+					<ng-template #elseVideo>
+						<button class="btn" id="togglevideo" (click)="toggleVideo()">Disable video</button>
+					</ng-template>
+					<div class="btn-group btn-group-xs">
+						<button id="bitrateset" autocomplete="off" class="">
+							Bandwidth<span class="caret"></span>
+						</button>
+						<ul id="bitrate" class="dropdown-menu">
+							<li><a href="#" (click)="setBitrate(0)">No limit</a></li>
+							<li><a href="#" (click)="setBitrate(128)">128kbit</a></li>
+							<li><a href="#" (click)="setBitrate(256)">256kbit</a></li>
+							<li><a href="#" (click)="setBitrate(512)">512kbit</a></li>
+							<li><a href="#" (click)="setBitrate(1024)">1mbit</a></li>
+							<li><a href="#" (click)="setBitrate(1500)">1.5mbit</a></li>
+							<li><a href="#" (click)="setBitrate(2000)">2mbit</a></li>
+						</ul>
+					</div>
+				</div>
+			</h3>
+		</div>
+		<div class="panel-body" id="videoleft">
+			<video
+				class="rounded centered" id="myvideo"
+				[attr.width]="myvideoState.width"
+				[attr.height]="myvideoState.height"
+				[attr.muted]="myvideoState.muted"
+				autoplay playsinline
+				></video>
+		</div>
+	</div>
+		</div>
+	<div class="col-md-6">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title">Remote Stream 
+					<span class="label label-info" id="curbitrate">{{showBitrate}}</span>
+				</h3>
+			</div>
+			<div class="panel-body">
+				<video
+					class="rounded centered" id="peervideo"
+					[attr.width]="peervideoState.width"
+					[attr.height]="peervideoState.height"
+					autoplay playsinline
+					(play)="playPeervideo()"
+					></video>
+				<video
+					class="rounded centered" id="waitingvideo"
+					width=320 height=240
+					*ngIf="showWaitingvideo"></video>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+

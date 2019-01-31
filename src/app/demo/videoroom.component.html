@@ -1,0 +1,265 @@
+<div class="container">
+	<div class="page-header">
+		<h1>Plugin Demo: Video Room
+			<button
+				class="btn btn-default" id="start" (click)="stop()"
+				*ngIf="onStart; else elseStart">Stop</button>
+			<ng-template #elseStart>
+				<button class="btn btn-default" id="start" (click)="start()">Start</button>
+			</ng-template>
+		</h1>
+	</div>
+	<div class="container" id="videojoin" *ngIf="showVideoJoin">
+		<div class="row">
+			<span class="label label-info" id="you"></span>
+			<div class="col-md-12" id="controls">
+				<div
+					class="input-group margin-bottom-md" id="registernow"
+					*ngIf="showRegisternow">
+					<span class="input-group-addon">@</span>
+					<input
+						autocomplete="off" class="form-control"
+						type="text" placeholder="Choose a display name" id="username"
+						[(ngModel)]="username"
+						(keypress)="checkEnter($event);" />
+					<span class="input-group-btn">
+						<button
+							class="btn btn-success" autocomplete="off" id="register"
+							(click)="registerUsername()">Join the room</button>
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="container" id="videos">
+	<div class="row">
+		<div class="col-md-4">
+		<div class="panel-heading">
+			<h3 class="panel-title">Local Video
+				<span class="label label-primary" id="publisher"></span>
+				<div class="btn-group btn-group-xs pull-right">
+					<div class="btn-group btn-group-xs">
+						<button
+							id="bitrateset" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+							Bandwidth<span class="caret"></span>
+						</button>
+						<ul id="bitrate" class="dropdown-menu" role="menu">
+							<li><a href="#" id="0" (click)="setBitrate(0)">No limit</a></li>
+							<li><a href="#" id="128" (click)="setBitrate(128)">128kbit</a></li>
+							<li><a href="#" id="256" (click)="setBitrate(256)">256kbit</a></li>
+							<li><a href="#" id="512" (click)="setBitrate(512)">512kbit</a></li>
+							<li><a href="#" id="1024" (click)="setBitrate(1024)">1mbit</a></li>
+							<li><a href="#" id="1500" (click)="setBitrate(1500)">1.5mbit</a></li>
+							<li><a href="#" id="2000" (click)="setBitrate(2000)">2mbit</a></li>
+						</ul>
+					</div>
+				</div>
+			</h3>
+		</div>
+		<div class="panel-body" id="videolocal">
+			<video
+				class="rounded centered" id="myvideo"
+				[attr.width]="myvideoState.width"
+				[attr.height]="myvideoState.height"
+				[attr.muted]="myvideoState.muted"
+				autoplay playsinline muted="muted"></video>
+			<button
+				class="btn btn-warning btn-xs" id="mute"
+				style="position: absolute; bottom: 0px; left: 0px; margin: 15px;">Mute</button>
+			<button
+				id="publish" class="btn btn-primary"
+				(click)="publishOwnFeed(true)" *ngIf="showPublish">Publish</button>
+			<button
+				class="btn btn-warning btn-xs" id="unpublish"
+				style="position: absolute; bottom: 0px; right: 0px; margin: 15px;">Unpublish</button>
+		</div>
+	</div>
+	<div class="col-md-4">
+		<div class="col-md-4">
+			<div class="panel panel-default" *ngIf="showRemote[1]">
+				<div class="panel-heading">
+					<h3 class="panel-title">
+						Remote Video #1 {{remoteUser[1]}} {{remoteBitrate[1]}}
+					</h3>
+				</div>
+				<div class="panel-body relative" id="videoremote1">
+					<div class="no-video-container" *ngIf="showNovideoRemote[1]">
+						<i class="fa fa-video-camera fa-5 no-video-icon"></i>
+						<span class="no-video-text">No remote video available</span>
+					</div>
+					<video
+						class="rounded centered" id="waitingvideo1"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						*ngIf="showWaitingRemote[1]"></video>
+					<video
+						class="rounded centered relative" id="remotevideo1"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						autoplay playsinline ></video>
+					<span
+						class="label label-primary" id="curres1"
+						style="position: absolute; bottom: 0px; left: 0px; margin: 15px;">
+						{{remoteCurres[1]}}
+					</span>
+					<span
+						class="label label-info" id="curbitrate1"
+						style="position: absolute; bottom: 0px; right: 0px; margin: 15px;">
+						{{remoteBitrate[1]}}
+					</span>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="panel panel-default" *ngIf="showRemote[2]">
+				<div class="panel-heading">
+					<h3 class="panel-title">Remote Video #2 {{remoteUser[2]}}</h3>
+				</div>
+				<div class="panel-body relative" id="videoremote2">
+					<div class="no-video-container" *ngIf="showNovideoRemote[2]">
+						<i class="fa fa-video-camera fa-5 no-video-icon"></i>
+						<span class="no-video-text">No remote video available</span>
+					</div>
+					<video
+						class="rounded centered" id="waitingvideo2"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						*ngIf="showWaitingRemote[2]"></video>
+					<video
+						class="rounded centered relative" id="remotevideo2"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						autoplay playsinline ></video>
+					<span
+						class="label label-primary" id="curres2"
+						style="position: absolute; bottom: 0px; left: 0px; margin: 15px;"
+						*ngIf="showCurresRemote[2]">
+						{{remoteCurres[2]}}
+					</span>
+					<span
+						class="label label-info" id="curbitrate2"
+						style="position: absolute; bottom: 0px; right: 0px; margin: 15px;"
+						*ngIf="showBitrateRemote[2]">
+						{{remoteBitrate[2]}}
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="row">
+		<div class="col-md-4">
+			<div class="panel panel-default" *ngIf="showRemote[3]">
+				<div class="panel-heading">
+					<h3 class="panel-title">Remote Video #3 <span class="label label-info" id="remote3"></span></h3>
+				</div>
+				<div class="panel-body relative" id="videoremote3">
+					<div class="no-video-container" *ngIf="showNovideoRemote[3]">
+						<i class="fa fa-video-camera fa-5 no-video-icon"></i>
+						<span class="no-video-text">No remote video available</span>
+					</div>
+					<video
+						class="rounded centered" id="waitingvideo3"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						*ngIf="showWaitingRemote[3]"></video>
+					<video
+						class="rounded centered relative" id="remotevideo3"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						autoplay playsinline ></video>
+					<span
+						class="label label-primary" id="curres3"
+						style="position: absolute; bottom: 0px; left: 0px; margin: 15px;"
+						*ngIf="showCurresRemote[3]">
+						{{remoteCurres[3]}}
+					</span>
+					<span
+						class="label label-info" id="curbitrate3"
+						style="position: absolute; bottom: 0px; right: 0px; margin: 15px;"
+						*ngIf="showBitrateRemote[3]">
+						{{remoteBitrate[3]}}
+					</span>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="panel panel-default" *ngIf="showRemote[4]">
+				<div class="panel-heading">
+					<h3 class="panel-title">Remote Video #4 <span class="label label-info" id="remote4"></span></h3>
+				</div>
+				<div class="panel-body relative" id="videoremote4">
+					<div class="no-video-container" *ngIf="showNovideoRemote[4]">
+						<i class="fa fa-video-camera fa-5 no-video-icon"></i>
+						<span class="no-video-text">No remote video available</span>
+					</div>
+					<video
+						class="rounded centered" id="waitingvideo4"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						*ngIf="showWaitingRemote[4]">
+					</video>
+					<video
+						class="rounded centered relative" id="remotevideo4"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						autoplay playsinline >
+					</video>
+					<span
+						class="label label-primary" id="curres4"
+						style="position: absolute; bottom: 0px; left: 0px; margin: 15px;"
+						*ngIf="showCurresRemote[4]">
+						{{remoteCurres[4]}}
+					</span>
+					<span
+						class="label label-info" id="curbitrate4"
+						style="position: absolute; bottom: 0px; right: 0px; margin: 15px;"
+						*ngIf="showBitrateRemote[4]">
+						{{remoteBitrate[4]}}
+					</span>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="panel panel-default" *ngIf="showRemote[5]">
+				<div class="panel-heading">
+					<h3 class="panel-title">Remote Video #5
+						<span class="label label-info" id="remote5"></span>
+					</h3>
+				</div>
+				<div class="panel-body relative" id="videoremote5">
+					<div class="no-video-container" *ngIf="showNovideoRemote[5]">
+						<i class="fa fa-video-camera fa-5 no-video-icon"></i>
+						<span class="no-video-text">No remote video available</span>
+					</div>
+					<video
+						class="rounded centered" id="waitingvideo5"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						*ngIf="showWaitingRemote[5]">
+					</video>
+					<video
+						class="rounded centered relative" id="remotevideo5"
+						[attr.width]="peervideoState.width"
+						[attr.height]="peervideoState.height"
+						autoplay playsinline >
+					</video>
+					<span
+						class="label label-primary" id="curres5"
+						style="position: absolute; bottom: 0px; left: 0px; margin: 15px;"
+						*ngIf="showCurresRemote[5]">
+						{{remoteCurres[5]}}
+					</span>
+					<span
+						class="label label-info" id="curbitrate5"
+						style="position: absolute; bottom: 0px; right: 0px; margin: 15px;"
+						*ngIf="showBitrateRemote[5]">
+						{{remoteBitrate[5]}}
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+

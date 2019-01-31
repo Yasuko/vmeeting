@@ -1,0 +1,55 @@
+.confirmation-screen{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(250,250,250,0.6);
+}
+.confirmation-window {
+    position: absolute;
+    width: 350px;
+    height: 150px;
+    top: 30%;
+    left: 35%;
+    border: solid 1px #23ff65;
+    border-radius: 10px;
+    background-color: rgba(250,250,250,1);
+    padding: 10px;
+    opacity: 0;
+}
+
+.confirmation-window > div {
+    text-align: center;
+}
+
+.confirmation-window-message {
+    position: absolute;
+
+}
+
+.confirmation-window-accept-button,
+.confirmation-window-reject-button {
+    line-height: 1.5em;
+    position: absolute;
+    bottom: 20px;
+    width: 100px;
+    height: 20px;
+    border-radius: 5px;
+    border: solid 1px rgba(200,200,200,1);
+    cursor: pointer;
+}
+.confirmation-window-accept-button {
+    left: 20%;
+}
+
+.confirmation-window-reject-button {
+    left: 60%;
+}
+
+.confirmation-window-accept-button:hover,
+.confirmation-window-reject-button:hover {
+    box-shadow: -1 -1 2px rgba(200,200,200,1);
+    background-color: rgba(230,230,230,1);
+}
+
