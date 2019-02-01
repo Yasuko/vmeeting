@@ -7,14 +7,14 @@ import { SubjectsService } from '../service';
 
 @Component({
   selector: 'app-echotest',
-  templateUrl: './echotest.component.html',
+  templateUrl: './recorder.component.html',
   styleUrls: [
       '../app.component.css',
-      './echotest.component.scss'
+      './recorder.component.scss'
     ]
 })
 
-export class EchoTestComponent implements OnInit {
+export class RecorderComponent implements OnInit {
 
     private server = null;
     private janus = null;

@@ -9,6 +9,8 @@ import { AppComponent } from './app.component';
 import { EchoTestComponent } from './demo/echotest.component';
 import { VideoroomComponent } from './demo/videoroom.component';
 import { ScreenComponent } from './demo/screen.component';
+import { RecorderComponent } from './demo/recorder.component';
+import { TextRoomComponent } from './demo/textroom.component';
 
 import { AlertComponent, ConfirmationComponent, LoadingComponent } from './_lib_component';
 
@@ -26,7 +28,9 @@ import { SubjectsService } from './service';
     LoadingComponent,
     EchoTestComponent,
     VideoroomComponent,
-    ScreenComponent
+    ScreenComponent,
+    RecorderComponent,
+    TextRoomComponent
   ],
   imports: [
     BrowserModule,
