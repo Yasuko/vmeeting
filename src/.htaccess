@@ -1,0 +1,11 @@
+# ErrorDocument 404 /Angular4/test-app/src/
+
+# BEGIN WordPress
+# <IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /dist/
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /dist/ [L]
+# </IfModule>

@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-// import { JanusService } from '../service';
-// import * as Janus from 'janus-ts';
+import { ActivatedRoute } from '@angular/router';
 declare var adapter: any;
 declare var Janus: any;
 import { SubjectsService, ImageService } from '../service';
 import { WebSocketService } from '../service';
+import { UserService, ContentService, TextService } from '../service';
+import { DrawService, StoryService } from '../service';
 
 @Component({
   selector: 'app-screen',
@@ -17,30 +18,13 @@ import { WebSocketService } from '../service';
 
 export class ScreenComponent implements OnInit {
 
+    private URL = 'http://happypazdra.dip.jp:8088/janus';
+    private URLS = 'https://happypazdra.dip.jp:8089/janus';
+
     private server = null;
     private janus = null;
     private screen = null;
     private opaqueId = '';
-
-
-    public showWaitingVideo = false;
-
-    public showHeaderScreen = false;
-    public showCenterScreen = true;
-
-    public showScreenVideo = false;
-    public showScreenStart = true;
-    public showScreenMenu = false;
-    public showScreenSelect = false;
-
-    public showCreateNow = false;
-    public showJoinNow = false;
-    public showRoom = false;
-
-    public showScreenCapture = false;
-    public showCaptureEditer = false;
-
-    public showScreenBlock = false;
 
     public onStart = false;
 
@@ -52,6 +36,29 @@ export class ScreenComponent implements OnInit {
     public room: Number = 0;
     public role = '';
 
+    public name = 'Guest';
+
+    // テキストチャット
+    public chatMess = '';
+
+    // キャプチャ編集
+    private canvasID = 'artbox';
+    private canvasBase: HTMLCanvasElement;
+    private ctx;
+
+    canvasWidth = 700;
+    canvasHeight = 400;
+    canvasColorList = [
+      '#E60012', '#F39800', '#FFF100', '#8FC31F', '#009944', '#009E96',
+      '#00A0E9', '#0068B7', '#1D2088', '#920783', '#E4007F', '#E5004F',
+      '#808080', '#000000', '#FFFFFF'
+    ];
+
+    canvasLineColor = '#555555';
+    canvasLineCap = 'round';
+    canvasLineWidth = 7;
+    canvasAlpha = 1;
+
     public session = '';
     public title = '';
 
@@ -60,7 +67,7 @@ export class ScreenComponent implements OnInit {
     public editCaptureTarget = 0;
 
     public myvideoState = {
-        'width': 1280,
+        'width': 1024,
         'height': 720,
         'muted': 'muted',
     };
@@ -69,32 +76,271 @@ export class ScreenComponent implements OnInit {
         'height': 240,
     };
 
+    public roomname = '';
+    public mode = 'master';
+
     public showBitrate = 0;
     constructor(
         // private janusService: Janus,
+        private router: ActivatedRoute,
         private subjectService: SubjectsService,
         private imageService: ImageService,
-        private websocketService: WebSocketService
+        private websocketService: WebSocketService,
+        private userService: UserService,
+        private contentService: ContentService,
+        private textService: TextService,
+        private storyService: StoryService
     ) {
     }
 
     ngOnInit(): void {
         this.initial();
         // this.setup();
+        this.setRoomName();
     }
+
+    private hub(): void {
+        this.subjectService.on('sys')
+        .subscribe((msg: any) => {
+          console.log(msg);
+        });
+        this.subjectService.on('on_allusers')
+        .subscribe((msg: any) => {
+            console.log(msg);
+            this.userService.addMultiUser(msg);
+        });
+        this.subjectService.on('on_' + this.roomname)
+        .subscribe((msg: any) => {
+            console.log(msg);
+            console.log(this.mode);
+            if (this.mode === 'master' && msg['msg'] === 'new_client') {
+                console.log(msg);
+                this.websocketService.send(
+                    this.roomname,
+                    {
+                        msg: 'connectionid',
+                        data: this.roomname
+                    }
+                );
+            } else {
+                this.socketHub(msg);
+            }
+        });
+    }
+
+    private socketHub(msg: any): void {
+        if (msg['msg'] === 'connectionid') {
+            console.log(msg);
+            this.roomid = msg['data'];
+        } else if (msg['msg'] === 'text') {
+            console.log(msg);
+            this.textService.addChat(msg['data']);
+        } else if (msg['msg'] === 'draw') {
+            console.log(msg);
+        } else if (msg['msg'] === 'image') {
+            console.log(msg);
+        }
+    }
+
+    private setRoomName(): void {
+        const room = this.router.snapshot.queryParams;
+        if (room.hasOwnProperty('room')) {
+            console.log(room);
+            this.roomname = room['room'];
+        }
+    }
+
+    private setupSocket(): void {
+        this.websocketService.setRoomName(this.roomname);
+        this.websocketService.setNameSpace('test1');
+        this.websocketService.setName(this.name);
+        this.websocketService.connection(
+            [
+                this.roomname, 'allusers'
+            ]
+        );
+    }
+
+    private getConnectionCode(): void {
+        console.log('send mes ' + this.roomname);
+        this.websocketService.send(
+            this.roomname,
+            {
+                msg: 'new_client'
+            }
+        );
+    }
+
+    /**
+     * チャット
+     */
+    public getChatData(): object {
+        return this.textService.getAllChat();
+    }
+
+    public sendChatByEnter(event): void {
+        if (event.hasOwnProperty('charCode')) {
+            const theCode = event.charCode;
+            if (theCode === 13) {
+                this.sendChat();
+            }
+        }
+        return;
+    }
+    public sendChat(): void {
+        this.textService.addChat({
+            text: this.chatMess,
+            tstamp: this.textService.getTimeStamp(),
+            name: this.name,
+            userid: ''
+        });
+        this.websocketService.send(
+            this.roomname,
+            {
+                msg: 'text',
+                data: {
+                    text: this.chatMess,
+                    tstamp: this.textService.getTimeStamp()
+                }
+            }
+        );
+        this.chatMess = '';
+    }
+
+
+    /**
+     *
+     * お絵かき
+     *
+     */
+    private setMouseEvent(): void {
+    this.canvasBase = <HTMLCanvasElement> document.getElementById(this.canvasID);
+    this.ctx = this.canvasBase.getContext('2d');
+    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+    const rect = this.canvasBase.getBoundingClientRect();
+    this.mouseService.setCorrection(rect);
+
+    this.canvasBase.addEventListener('mousedown', (e: MouseEvent) => {
+        this.mouseService.setStartPosition(e);
+    });
+    this.canvasBase.addEventListener('mouseup', (e) => {
+        this.mouseService.end();
+    });
+    this.canvasBase.addEventListener('mousemove', (e: MouseEvent) => {
+        this.mouseMoveJob(e);
+    });
+    this.canvasBase.addEventListener('touchstart', (e) => {
+        this.mouseService.setStartPosition(e);
+    });
+    this.canvasBase.addEventListener('touchend', (e) => {
+        this.mouseService.end();
+    });
+    this.canvasBase.addEventListener('touchmove', (e) => {
+        this.mouseMoveJob(e);
+    });
+    }
+    private mouseMoveJob(e): void {
+    if (this.mouseService.getMoveFlag()) {
+        this.mouseService.mouseMove(e);
+        const position = this.buildDrawStatus(this.mouseService.getMousePosition());
+        this.draw(position);
+        this.sendDraw(position);
+    }
+    }
+
+
+    /**
+     * キャンバスに絵を書く
+     * @param mouse_position array
+     */
+    private draw(mouse_position): void {
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(
+        mouse_position['startx'], mouse_position['starty']
+    );
+    this.ctx.lineTo(
+        mouse_position['movex'], mouse_position['movey']
+    );
+    this.ctx.lineCap = mouse_position['linecap'];
+    this.ctx.lineWidth = mouse_position['linewidth'];
+    this.ctx.strokeStyle = mouse_position['linecolor'];
+    this.ctx.stroke();
+    }
+
+    /**
+    * キャンバスに描く内容と描画オプションを結合
+    * @param position object
+    */
+    private buildDrawStatus(position: object): object {
+    const options = {
+        linecap: this.canvasLineCap,
+        linewidth: this.canvasLineWidth,
+        linealpha: this.canvasAlpha,
+        linecolor: this.canvasLineColor
+    };
+    return Object.assign(position, options);
+    }
+
+    /**
+    * ペイント色の変更
+    * @param color string
+    */
+    public setPaintColor(color: string): void {
+    this.canvasLineColor = color;
+    }
+
+
+    /**
+     *
+     * 画面切り替え
+     *
+     */
+
+    public showContent(target): boolean {
+        return this.contentService.checkShow(target);
+    }
+
+    public changeContent(target: string, bool: boolean = null): void {
+        this.contentService.changeState(target, bool);
+    }
+
+    public changeDashbordeContent(target: string): void {
+        this.contentService.showDashbordeContent(target);
+    }
+
+    public closeDashborde(): void {
+        this.contentService.closeDashborde();
+    }
+
+    /**
+     *
+     * 接続中ユーザー
+     *
+     */
+    public getUsers(): object {
+        return this.userService.getAllUser();
+    }
+
+    /**
+     *
+     * Janus
+     *
+     */
 
     private initial(): void {
         console.log(window.location.protocol);
         if (window.location.protocol === 'http:') {
-            this.server = 'http://happypazdra.dip.jp:8088/janus';
+            this.server = this.URL;
         } else if (window.location.protocol === 'https:') {
-            this.server = 'https://happypazdra.dip.jp:8089/janus';
+            this.server = this.URLS;
         }
 
         this.opaqueId = 'screensharingtest-' + Janus.randomString(12);
     }
 
-    public start(): void {
+     public start(): void {
         this.onStart = true;
         // Make sure the browser supports WebRTC
         if (!Janus.isWebrtcSupported()) {
@@ -103,6 +349,10 @@ export class ScreenComponent implements OnInit {
         }
         // this.initial();
         this.setup();
+        // ゲスト接続の場合にroomname要求
+        if (this.roomname !== '') {
+            this.mode = 'client';
+        }
     }
 
     public stop(): void {
@@ -149,18 +399,16 @@ export class ScreenComponent implements OnInit {
             return;
         }
         // Create a new room
-        this.showScreenMenu = false;
+        this.contentService.changeState('ScreenMenu', false);
         if (this.desc === '') {
             // before bootbox alert
             console.log('Please insert a description for the room');
-            this.showScreenStart = false;
-            this.showScreenMenu = true;
+            this.contentService.screenReset();
             return;
         }
         this.capture = 'screen';
         if (typeof(navigator['mozGetUserMedia']) === 'function') {
-            this.showScreenMenu = false;
-            this.showScreenSelect = true;
+            this.contentService.changeState('ScreenSelect', true);
             // Firefox needs a different constraint for screen and window sharing
         } else {
             this.shareScreen();
@@ -178,6 +426,7 @@ export class ScreenComponent implements OnInit {
             if (event !== undefined && event != null) {
                 // Our own screen sharing session has been created, join it
                 this.room = result['room'];
+                this.roomname = String(this.room);
                 Janus.log('Screen sharing session created: ' + this.room);
                 this.myusername = this.randomString(12);
                 const register = {
@@ -222,23 +471,23 @@ export class ScreenComponent implements OnInit {
 
     public startCaptureEdit(target): void {
         this.editCaptureTarget = target;
-        this.showCaptureEditer = true;
+        this.contentService.changeState('CaptureEditer', true);
     }
 
     public closeCaputureEdit(): void {
         this.editCaptureTarget = null;
-        this.showCaptureEditer = false;
+        this.contentService.changeState('CaptureEditer', false);
     }
 
     public joinScreen(): void {
         // Join an existing screen sharing session
-        this.showScreenMenu = false;
+        this.contentService.changeState('ScreenMenu', false);
         const roomid = this.roomid;
         if (isNaN(Number(roomid))) {
             // before bootbox alert
             console.log('Session identifiers are numeric only');
-            this.showScreenStart = false;
-            this.showScreenMenu = true;
+            this.contentService.changeState('ScreenStart', false);
+            this.contentService.changeState('ScreenMenu', true);
             return;
         }
         this.room = roomid;
@@ -258,8 +507,7 @@ export class ScreenComponent implements OnInit {
     }
 
     public videoPlaying(): void {
-        this.showWaitingVideo = false;
-        this.showScreenVideo = false;
+        this.contentService.showVideoPlay();
     }
 
     public newRemoteFeed(id, display): void {
@@ -296,8 +544,8 @@ export class ScreenComponent implements OnInit {
                             Janus.log(
                                 'Successfully attached to feed ' + id +
                                 ' (' + display + ') in room ' + msg['room']);
-                            this.showScreenMenu = false;
-                            this.showRoom = true;
+                            this.contentService.changeState('ScreenMenu', false);
+                            this.contentService.changeState('Room', true);
                         } else {
                             // What has just happened?
                         }
@@ -329,13 +577,10 @@ export class ScreenComponent implements OnInit {
                 },
                 onremotestream: (stream) => {
                     this.setCaptureTarget();
-                    this.showCenterScreen = false;
-                    this.showScreenCapture = true;
-                    this.showHeaderScreen = true;
-                    this.showRoom = true;
-                    if (this.showScreenVideo === false) {
+                    this.contentService.showRemoteStream();
+                    if (this.contentService.checkShow('ScreenVideo') === false) {
                         // No remote video yet
-                        this.showScreenCapture = true;
+                        this.contentService.changeState('Room', true);
                         // Show the video, hide the spinner and show the resolution when we get a playing event
                     }
                     Janus.attachMediaStream(
@@ -345,8 +590,7 @@ export class ScreenComponent implements OnInit {
                 },
                 oncleanup: () => {
                     Janus.log(' ::: Got a cleanup notification (remote feed ' + id + ') :::');
-                    this.showWaitingVideo = false;
-
+                    this.contentService.changeState('WaitingVideo', false);
                 }
             });
     }
@@ -364,11 +608,18 @@ export class ScreenComponent implements OnInit {
                                 this.screen = pluginHandle;
                                 Janus.log('Plugin attached! (' +
                                     this.screen.getPlugin() + ', id=' + this.screen.getId() + ')');
-                                this.showScreenStart = false;
-                                this.showScreenMenu = true;
-                                this.showCreateNow = true;
-                                this.showJoinNow = true;
-                                this.showRoom = true;
+                                this.contentService.showStartSequence();
+
+                                // クライアントの場合ノード接続開始
+                                if (this.mode === 'client') {
+                                    // websocket受信待受
+                                    this.hub();
+                                    // websocket 接続開始
+                                    this.roomid = Number(this.roomname);
+                                    this.setupSocket();
+                                    this.joinScreen();
+                                    this.getConnectionCode();
+                                }
                             },
                             error: (error) => {
                                 console.error('  -- Error attaching plugin...', error);
@@ -486,13 +737,16 @@ export class ScreenComponent implements OnInit {
                                 Janus.debug(stream);
 
                                 this.setCaptureTarget();
-                                this.showCenterScreen = false;
-                                this.showHeaderScreen = true;
-                                this.showScreenCapture = true;
-                                this.showRoom = true;
-                                if (this.showScreenVideo === false) {
+                                this.contentService.showLocalStream();
+
+                                // websocket受信待受
+                                this.hub();
+                                // websocket接続開始
+                                this.setupSocket();
+
+                                if (this.contentService.checkShow('ScreenVideo') === false) {
                                     this.myvideoState.muted = 'muted';
-                                    this.showScreenVideo = true;
+                                    this.contentService.changeState('ScreenVideo', true);
                                 }
                                 Janus.attachMediaStream(
                                     document.getElementById('screenvideo'),
@@ -500,7 +754,9 @@ export class ScreenComponent implements OnInit {
                                 );
                                 if (this.screen.webrtcStuff.pc.iceConnectionState !== 'completed'
                                     && this.screen.webrtcStuff.pc.iceConnectionState !== 'connected') {
-                                     this.showScreenBlock = true;
+
+                                    this.contentService.changeState('ScreenBlock', true);
+
                                 }
                             },
                             onremotestream: (stream) => {
@@ -525,25 +781,8 @@ export class ScreenComponent implements OnInit {
 
     }
 
-    private getQueryStringValue(name): string {
-        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-        const regex = new RegExp('[\\?&]' + name + '=([^&#]*)'),
-            results = regex.exec(location.search);
-        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    }
-
     private AllReset(): void {
-        this.showWaitingVideo = false;
-        this.showScreenVideo = false;
-        this.showScreenStart = true;
-        this.showScreenMenu = false;
-        this.showScreenSelect = false;
-        this.showCreateNow = false;
-        this.showJoinNow = false;
-        this.showRoom = false;
-        this.showScreenCapture = false;
-
-        this.showScreenBlock = false;
+        this.contentService.screenReset();
 
         this.onStart = false;
 

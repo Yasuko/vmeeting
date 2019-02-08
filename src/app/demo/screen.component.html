@@ -1,13 +1,22 @@
 <div class="">
-	<div class="page-center" *ngIf="showCenterScreen">
-		<div class="page-center-block" *ngIf="showScreenStart">
+	<div class="page-center" *ngIf="showContent('CenterScreen')">
+		<div class="page-center-block" *ngIf="showContent('ScreenStart')">
 			<div class="title-s3">
 				<h3>画面共有テスト</h3>
 			</div>
-			<div class="center-button-s" (click)="start()">開始</div>
+			<div class="list-block-s1">
+				<div class="cp_iptxt">
+					<input
+						type="text"
+						placeholder="Your name"
+						[(ngModel)]="name" />
+					<i class="fa fa-user fa-lg fa-fw" aria-hidden="true"></i>
+				</div>
+				<div class="center-button-s" (click)="start()">開始</div>
+			</div>
 		</div>
-		<div class="page-center-block" *ngIf="showScreenMenu">
-			<div class="list-block-s1" *ngIf="showCreateNow">
+		<div class="page-center-block" *ngIf="showContent('ScreenMenu')">
+			<div class="list-block-s1" *ngIf="showContent('CreateNow')">
 				<div class="cp_iptxt">
 					<input
 						type="text"
@@ -18,19 +27,8 @@
 				</div>
 				<div class="button-s" (click)="preShareScreen()">画面共有</div>
 			</div>
-			<div class="list-block-s1" *ngIf="showJoinNow">
-				<div class="cp_iptxt">
-					<input
-						type="text"
-						placeholder="Insert the numeric session identifier"
-						(keypress)="checkEnterJoin($event)"
-						[(ngModel)]="roomid" />
-					<i class="fa fa-user fa-lg fa-fw" aria-hidden="true"></i>
-				</div>
-				<div class="button-s" (click)="joinScreen()">共有に参加</div>
-			</div>
 		</div>
-		<div class="page-center-block" *ngIf="showScreenSelect">
+		<div class="page-center-block" *ngIf="showContent('ScreenSelect')">
 			<div class="list-block-s2">
 				<div class="button-m" (click)="setShareMode('screen')">画面を共有</div>
 				<div class="button-m" (click)="setShareMode('window')">アプリを共有</div>
@@ -38,25 +36,33 @@
 		</div>
 	</div>
 
-	<div class="page-header" *ngIf="showHeaderScreen">
+	<div class="page-header" *ngIf="showContent('HeaderScreen')">
 		<div class="button-m" (click)="stop()">終了</div>
-		<div class="screen-header">
+		<div class="members">
+			<span>Person::</span>
+			<ng-container *ngFor="let user of getUsers()">
+			<div class="member-detail">
+				<p>{{user.name}}</p>
+			</div>
+			</ng-container>
+		</div>
+		<div class="header-status">
 			<span class="label label-info">
-				議題：{{title}}
+				Title：{{title}}
 			</span>
 			<span class="label label-success">
-				部屋名：{{room}}
+				Room：{{room}}
 			</span>
 		</div>
 	</div>
 
-	<div class="screen-view" id="room" *ngIf="showRoom">
-		<div class="screen-block" *ngIf="showScreenBlock"></div>
-		<div class="screen-body" id="screencapture">
+	<div class="screen-view" id="room" *ngIf="showContent('Room')">
+		<div class="screen-block" *ngIf="showContent('ScreenBlock')"></div>
+		<div class="screen-body">
 			<video
 				class="rounded centered" id="waitingvideo"
 				width="100%" height="100%"
-				*ngIf="showWaitingVideo" >
+				*ngIf="showContent('WaitingVideo')" >
 			</video>
 			<video
 				class="rounded centered" id="screenvideo"
@@ -68,24 +74,77 @@
 			</video>
 		</div>
 	</div>
-
+</div>
+<div
+class="take-screenshot"
+(click)="captureScreen()"
+*ngIf="showContent('Room')">ScreenShot</div>
+<div
+	class="dashbord"
+	(click)="changeContent('ScreenDashbord')"><<</div>
+<div class="page-tools" *ngIf="showContent('ScreenDashbord')">
+	<div class="tool-button" (click)="changeDashbordeContent('ScreenCapture')">
+		<p>Capture</p>
+	</div>
+	<div class="tool-button" (click)="changeDashbordeContent('ScreenText')">
+		<p>Chat</p>
+	</div>
+	<div class="tool-button" (click)="changeDashbordeContent('ScreenStory')">
+		<p>Story</p>
+	</div>
 </div>
 
-<div class="page-tools" *ngIf="showScreenCapture">
-	<div>
-		<div class="button-s" (click)="captureScreen()">キャプチャ</div>
+<div class="screen-capture" *ngIf="showContent('ScreenCapture')">
+	<div><h3>ScreenShot</h3></div>
+	<div class="button-m" (click)="closeDashborde()">Close</div>
+	<ng-container *ngFor="let cap of getAllCapture(); index as i">
+	<div (click)="startCaptureEdit(i)">
+		<span>{{i}}</span>
+		<img src="{{cap}}" width=180>
 	</div>
-	<div>
-		<ng-container *ngFor="let cap of getAllCapture(); index as i">
-		<div (click)="startCaptureEdit(i)">
-			<span>{{i}}</span>
-			<img src="{{cap}}" width=180>
-		</div>
-		</ng-container>
-	</div>
+	</ng-container>
 </div>
 
-<div class="page-editer" *ngIf="showCaptureEditer">
+<div class="page-editer" *ngIf="showContent('CaptureEditer')">
+	<canvas id="editbox"
+		width=700 height=400></canvas>
 	<img src="{{getCapture()}}">
 	<div>閉じる</div>
+</div>
+
+<div class="screen-text" *ngIf="showContent('ScreenText')">
+	<div><h3>Chat</h3></div>
+	<div class="button-m" (click)="closeDashborde()">Close</div>
+	<div class="chat-window">
+	<ng-container *ngFor="let chats of getChatData(); index as i">
+		<div class="chat-text">
+			<span>{{chats.text}}</span>
+			<span>：{{chats.name}}</span>
+		</div>
+	</ng-container>
+	</div>
+	<div class="chat-insert">
+		<div class="cp_iptxt">
+			<input
+				type="text"
+				placeholder="Insert Chat"
+				[(ngModel)]="chatMess"
+				(keypress)="sendChatByEnter($event)"/>
+			<i class="fa fa-user fa-lg fa-fw" aria-hidden="true"></i>
+		</div>
+		<div class="center-button-s" (click)="sendChat()">send</div>
+	</div>
+</div>
+
+<div class="screen-story" *ngIf="showContent('ScreenStory')">
+	<div><h3>Story</h3></div>
+	<div class="button-m" (click)="closeDashborde()">Close</div>
+	<div class="story-borde">
+		<div class="story-capture">
+
+		</div>
+		<div class="story-chat">
+
+		</div>
+	</div>
 </div>

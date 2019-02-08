@@ -4,6 +4,7 @@ import { NgModule } from '@angular/core';
 import { HttpModule } from '@angular/http';
 import { FormsModule } from '@angular/forms';
 
+import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
 import { EchoTestComponent } from './demo/echotest.component';
@@ -20,6 +21,11 @@ import { WebSocketService, WebRTCService, ImageService } from './service';
 
 import { SubjectsService } from './service';
 
+import {
+  TextService, UserService, ContentService, DrawService,
+  StoryService
+} from './service';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -33,6 +39,7 @@ import { SubjectsService } from './service';
     TextRoomComponent
   ],
   imports: [
+    AppRoutingModule,
     BrowserModule,
     BrowserAnimationsModule,
     HttpModule,
@@ -43,8 +50,9 @@ import { SubjectsService } from './service';
     MessageService,
     WebSocketService,
     WebRTCService,
-    ImageService
-    // JanusService
+    ImageService,
+    TextService, UserService, ContentService, DrawService,
+    StoryService
   ],
   bootstrap: [
     AppComponent,

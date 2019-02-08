@@ -14,8 +14,8 @@ export class WebSocketService {
     private socket;
     ioConnection: any;
 
-    private groupname: string = 'test';
-    private roomname: string = 'test1';
+    private roomname: string = 'test';
+    private namespace: string = 'test1';
     private username: string = 'ゲスト';
 
     private connected: boolean = false;
@@ -29,15 +29,17 @@ export class WebSocketService {
      */
     private initSocket(): void {
       this.socket = socketIo(
-        this.server + this.roomname,
+        this.server + this.namespace,
         {
           secure: true
         });
     }
 
     public initial(events: object): void {
+      console.log('Start websocket Connection');
         this.initSocket();
 
+        // websocket で応答するイベントを登録
         for (const key in events) {
           if (events.hasOwnProperty(key)) {
             this.onData(events[key]);
@@ -67,12 +69,12 @@ export class WebSocketService {
         this.initial(events);
       }
 
-      public setRoom(room: string): void {
-        this.roomname = room;
+      public setNameSpace(namespace: string): void {
+        this.namespace = namespace;
       }
 
-      public setGroup(group: string): void {
-        this.groupname = group;
+      public setRoomName(room: string): void {
+        this.roomname = room;
       }
       public setName(name: string): void {
         this.username = name;
@@ -93,7 +95,7 @@ export class WebSocketService {
       public join(): void {
         this.socket.emit('join',
         {
-          'group' : this.groupname,
+          'group' : this.roomname,
           'target': 'group',
           'name': this.username
         });
@@ -104,12 +106,15 @@ export class WebSocketService {
           tag,
           {
             'data': message,
-            'group' : this.groupname,
+            'group' : this.roomname,
             'target': 'group'
           }
         );
       }
 
+      /**
+       * ログイン
+       */
       public onSys(): void {
         new Observable<any>(observer => {
           this.socket.on('sys', (data: any) => observer.next(data));
@@ -136,9 +141,10 @@ export class WebSocketService {
         new Observable<any>(observer => {
           this.socket.on(tag, (data: any) => observer.next(data));
         }).subscribe(
-          (image: any) => {
+          (msg: any) => {
+            console.log('on_' + tag);
             this.subjectService
-              .publish('on_' + tag, image);
+              .publish('on_' + tag, msg);
           });
       }
       /**

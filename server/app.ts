@@ -8,7 +8,7 @@ export class ChatServer extends SocketService {
     // private nameSpace: NameSpaceService;
     // private room: RoomService;
     private NameSpaces: string[] = ['test1', 'test2', 'test3', 'test4'];
-    private Rooms: string[] = ['msg', 'draw', 'image', 'webrtc'];
+    private Rooms: string[] = [];
     private usersModel: UsersModel = new UsersModel;
 
     constructor(
@@ -72,6 +72,30 @@ export class ChatServer extends SocketService {
         });
     }
 
+    private addRoom(room: string): void {
+        this.Rooms.push(room);
+    }
+
+    private delRoom(room): void {
+        const rooms = this.Rooms.filter(n => n !== room);
+        this.Rooms = rooms;
+    }
+
+    private checkRoomName(name: string): boolean {
+        if (!this.Rooms.hasOwnProperty(name)) {
+            this.Rooms.push(name);
+            return true;
+        }
+        return false;
+    }
+
+    private checkNameSpace(name: string): boolean {
+        if (!this.NameSpaces.hasOwnProperty(name)) {
+            this.NameSpaces.push(name);
+            return true;
+        }
+        return false;
+    }
 
     /**
      * 初回接続処理
@@ -82,6 +106,9 @@ export class ChatServer extends SocketService {
         return new Promise((resolve) => {
             this.Sockets[socketid].on('join', (m: any) => {
                 // 接続ユーザーの初期処理
+                if (!this.checkRoomName(m['group'])) {
+                    this.addRoom(m['group']);
+                }
                 resolve(this.joinUserSeaquens(m, socketid, namespace));
             });
         });
@@ -120,8 +147,9 @@ export class ChatServer extends SocketService {
             namespace   : namespace,
             name        : m['name']
         });
+
         /**
-         * 同一部屋内の接続ユーザーへ色々情報を送る
+         * ルーム内の全ユーザーへ色々情報を送る
          * 送り元にも送る
          */
         const result: any = await this.usersModel.getByRoom(m['group']);
@@ -131,8 +159,6 @@ export class ChatServer extends SocketService {
             this.emitAll(namespace, m['group'], 'allusers', result);
             // this.emitUser(socketid, 'allusers', result);
         }
-
-
 
         // ルームの全メンバーへ新規ユーザーを伝える
         await this.emitAll(
