@@ -8,6 +8,7 @@ export class UsersModel {
         namespace   : { type: String, default: 'test1' },
         room        : { type: String, default: 'test' },
         name        : { type: String, default: 'ゲスト' },
+        color        : { type: String, default: '#000000' },
     });
 
     private mongodbService: MongoDBService = new MongoDBService;
@@ -36,7 +37,8 @@ export class UsersModel {
                     userid      : user['userid'],
                     namespace   : user['namespace'],
                     room        : user['room'],
-                    name        : user['name']
+                    name        : user['name'],
+                    color        : user['color']
                 }
             );
         }
@@ -83,6 +85,7 @@ export class UsersModel {
                     namespace   : users['namespace'],
                     room        : users['room'],
                     name        : users['name'],
+                    color       : users['color'],
                 }}
             );
     }

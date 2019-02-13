@@ -16,7 +16,9 @@ import { TextRoomComponent } from './demo/textroom.component';
 import { AlertComponent, ConfirmationComponent, LoadingComponent } from './_lib_component';
 
 import { MessageService } from './message/message.service';
-import { WebSocketService, WebRTCService, ImageService } from './service';
+import {
+   WebSocketService, WebRTCService, ImageService, MouseService
+} from './service';
 // import { JanusService } from './service';
 
 import { SubjectsService } from './service';
@@ -49,6 +51,7 @@ import {
     SubjectsService,
     MessageService,
     WebSocketService,
+    MouseService,
     WebRTCService,
     ImageService,
     TextService, UserService, ContentService, DrawService,

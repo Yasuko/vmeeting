@@ -21,6 +21,27 @@
 	width: 250px;
 }
 
+.exit-button {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    border: solid 1px rgba(100,100,100,1);
+    border-radius: 20px;
+    cursor: pointer;
+}
+.exit-button:hover {
+	background-color: rgba(200,200,200,1);
+}
+.exit-button > img {
+	display: block;
+	position: relative;
+	width: 20px;
+	margin: 12px auto;
+}
+
 .members {
 	position: absolute;
 	top: 5px;
@@ -38,9 +59,12 @@
 	float: left;
 	width: 80px;
 	height: 40px;
+	margin: 0 5px;
 }
 .member-detail > p{
-	line-height: 4em;
+	line-height: 3em;
+	text-shadow: 1px 1px 1px rgba(100,100,100,1);
+	font-weight: bold;
 	font-size: 0.8em;
 	text-align: center;
 	width: 80px;
@@ -73,7 +97,9 @@
 }
 
 
-
+/*
+* 共有スクリーン
+*/
 .screen-view{
 	position: absolute;
 	top: 0px;
@@ -92,65 +118,58 @@
 	padding: 0;
 }
 
-
-
-.dashbord {
-	font-size: 1.1em;
-	text-align: center;
+.screen-videobox {
 	position: absolute;
-	top: 45px;
-	right: 0px;
-	width: 80px;
-	height: 30px;
-	border-radius: 15px;
-	border: solid 1px rgba(150,150,150,1);
-	box-shadow: 0px 2px 2px rgba(200,200,200,1);
-	z-index: 1100;
+	top: 0px;
+	left: 0px;
+}
+.screen-artbox {
+	position: absolute;
+	top: 0px;
+	left: 0px;
 }
 
 .page-tools {
 	position: absolute;
 	top: 80px;
-	right: 0px;
-	width: 150px;
+	right: 50px;
+	width: 50px;
 	height: 90%;
 	min-height: 300px;
 	max-height: 500px;
 	padding: 0;
 	margin: 0;
-	background-color: rgba(250,250,250,0.95);
-	border-right: solid 1px rgba(200,200,200,1);
 	z-index: 1010;
 }
 
 .tool-button {
 	position: relative;
 	float: left;
-	width: 100%;
-	height: 50px;
+	width: 60px;
+	height: 60px;
 	margin: 5px auto;
-	border-top: ridge 4px rgba(240,240,240,0.6);
+	border-radius: 30px;
+	border: solid 1px rgba(200,200,200,1);
+	cursor: pointer;
 }
 .tool-button:first {
 	margin: 15px;
 }
-.tool-button > p {
-	text-indent: 6em;
-	font-size: 0.8em;
-	font-weight: bold;
-	text-align: left;
-	line-height: 5em;
-	width: 100%;
-	height: 100%;
-	border-top: dashed 1px rgba(200,200,200,1);
-	border-bottom: ridge 2px rgba(200,200,200,1);
-	cursor: pointer;
+
+.tool-button > img {
+	display: block;
+	position: relative;
+	width: 35px;
+	margin: 10px auto;
 }
 
-.tool-button > p:hover {
-	background-color: rgba(230,230,230,1);
+.tool-button:hover {
+	background-color: rgba(200,200,200,1);
 }
 
+/*
+* Screen Shot
+*/
 .screen-capture {
 	position: absolute;
 	top: 80px;
@@ -161,20 +180,12 @@
 	z-index: 1200;
 }
 
-.take-screenshot {
-    font-size: 0.95em;
-    line-height: 2em;
-    text-align: center;
-	position: absolute;
-	top: 80%;
-	right: 100px;
-	width: 100px;
-    height: 30px;
-    margin: 5px auto;
-    border: solid 1px rgba(100,100,100,1);
-	border-radius: 10px;
-    cursor: pointer;
-	z-index: 10000;
+.screen-list {
+	cursor: pointer;
+}
+
+.screen-list:hover {
+	box-shadow: 0px 2px 2px rgba(200,200,200,1);
 }
 
 .screen-story {
@@ -310,7 +321,27 @@
     border: solid 1px rgba(100,100,100,1);
     border-radius: 10px;
 }
-.button-m:hover {
+
+.button-close {
+	font-weight: bold;
+    font-size: 1em;
+    line-height: 3em;
+    cursor: pointer;
+    text-align: center;
+    width: 50px;
+    height: 50px;
+    margin: 5px;
+    border: solid 1px rgba(100,100,100,1);
+    border-radius: 25px;
+}
+
+.button-close {
+	position: absolute;
+	bottom: 90px;
+	left: 80%;
+}
+.button-m:hover,
+.button-close:hover {
     background-color: rgba(150,150,150,1);
 }
 

@@ -17,6 +17,7 @@ export class WebSocketService {
     private roomname: string = 'test';
     private namespace: string = 'test1';
     private username: string = 'ゲスト';
+    private usercolor: string = '#000000';
 
     private connected: boolean = false;
 
@@ -79,6 +80,9 @@ export class WebSocketService {
       public setName(name: string): void {
         this.username = name;
       }
+      public setColor(color: string): void {
+        this.usercolor = color;
+      }
 
       /**
        * websocket切断
@@ -97,7 +101,8 @@ export class WebSocketService {
         {
           'group' : this.roomname,
           'target': 'group',
-          'name': this.username
+          'name': this.username,
+          'color': this.usercolor,
         });
       }
 
@@ -142,7 +147,7 @@ export class WebSocketService {
           this.socket.on(tag, (data: any) => observer.next(data));
         }).subscribe(
           (msg: any) => {
-            console.log('on_' + tag);
+            // console.log('on_' + tag);
             this.subjectService
               .publish('on_' + tag, msg);
           });

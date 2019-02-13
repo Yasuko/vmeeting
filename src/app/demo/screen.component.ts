@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 declare var adapter: any;
 declare var Janus: any;
 import { SubjectsService, ImageService } from '../service';
-import { WebSocketService } from '../service';
+import { WebSocketService, MouseService } from '../service';
 import { UserService, ContentService, TextService } from '../service';
 import { DrawService, StoryService } from '../service';
 
@@ -37,6 +37,7 @@ export class ScreenComponent implements OnInit {
     public role = '';
 
     public name = 'Guest';
+    public userColor = '';
 
     // テキストチャット
     public chatMess = '';
@@ -46,8 +47,6 @@ export class ScreenComponent implements OnInit {
     private canvasBase: HTMLCanvasElement;
     private ctx;
 
-    canvasWidth = 700;
-    canvasHeight = 400;
     canvasColorList = [
       '#E60012', '#F39800', '#FFF100', '#8FC31F', '#009944', '#009E96',
       '#00A0E9', '#0068B7', '#1D2088', '#920783', '#E4007F', '#E5004F',
@@ -56,7 +55,7 @@ export class ScreenComponent implements OnInit {
 
     canvasLineColor = '#555555';
     canvasLineCap = 'round';
-    canvasLineWidth = 7;
+    canvasLineWidth = 4;
     canvasAlpha = 1;
 
     public session = '';
@@ -86,6 +85,7 @@ export class ScreenComponent implements OnInit {
         private subjectService: SubjectsService,
         private imageService: ImageService,
         private websocketService: WebSocketService,
+        private mouseService: MouseService,
         private userService: UserService,
         private contentService: ContentService,
         private textService: TextService,
@@ -111,10 +111,7 @@ export class ScreenComponent implements OnInit {
         });
         this.subjectService.on('on_' + this.roomname)
         .subscribe((msg: any) => {
-            console.log(msg);
-            console.log(this.mode);
             if (this.mode === 'master' && msg['msg'] === 'new_client') {
-                console.log(msg);
                 this.websocketService.send(
                     this.roomname,
                     {
@@ -133,10 +130,11 @@ export class ScreenComponent implements OnInit {
             console.log(msg);
             this.roomid = msg['data'];
         } else if (msg['msg'] === 'text') {
-            console.log(msg);
+            // console.log(msg);
             this.textService.addChat(msg['data']);
         } else if (msg['msg'] === 'draw') {
-            console.log(msg);
+            this.pointer(msg['data']['position']);
+            // console.log(msg);
         } else if (msg['msg'] === 'image') {
             console.log(msg);
         }
@@ -151,6 +149,7 @@ export class ScreenComponent implements OnInit {
     }
 
     private setupSocket(): void {
+        this.websocketService.setColor(this.userColor);
         this.websocketService.setRoomName(this.roomname);
         this.websocketService.setNameSpace('test1');
         this.websocketService.setName(this.name);
@@ -192,6 +191,7 @@ export class ScreenComponent implements OnInit {
             text: this.chatMess,
             tstamp: this.textService.getTimeStamp(),
             name: this.name,
+            color: this.userColor,
             userid: ''
         });
         this.websocketService.send(
@@ -214,39 +214,50 @@ export class ScreenComponent implements OnInit {
      *
      */
     private setMouseEvent(): void {
-    this.canvasBase = <HTMLCanvasElement> document.getElementById(this.canvasID);
-    this.ctx = this.canvasBase.getContext('2d');
-    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+        console.log('start art box');
+        this.canvasBase = <HTMLCanvasElement> document.getElementById(this.canvasID);
+        this.ctx = this.canvasBase.getContext('2d');
+        this.ctx.clearRect(0, 0, this.myvideoState.width, this.myvideoState.height);
 
-    const rect = this.canvasBase.getBoundingClientRect();
-    this.mouseService.setCorrection(rect);
+        const rect = this.canvasBase.getBoundingClientRect();
+        console.log(rect);
+        this.mouseService.setCorrection(rect);
 
-    this.canvasBase.addEventListener('mousedown', (e: MouseEvent) => {
-        this.mouseService.setStartPosition(e);
-    });
-    this.canvasBase.addEventListener('mouseup', (e) => {
-        this.mouseService.end();
-    });
-    this.canvasBase.addEventListener('mousemove', (e: MouseEvent) => {
-        this.mouseMoveJob(e);
-    });
-    this.canvasBase.addEventListener('touchstart', (e) => {
-        this.mouseService.setStartPosition(e);
-    });
-    this.canvasBase.addEventListener('touchend', (e) => {
-        this.mouseService.end();
-    });
-    this.canvasBase.addEventListener('touchmove', (e) => {
-        this.mouseMoveJob(e);
-    });
+        this.canvasBase.addEventListener('mousedown', (e: MouseEvent) => {
+            this.mouseService.setStartPosition(e);
+        });
+        this.canvasBase.addEventListener('mouseup', (e) => {
+            this.ctx.clearRect(0, 0, this.myvideoState.width, this.myvideoState.height);
+            this.mouseService.end(e);
+        });
+        this.canvasBase.addEventListener('mousemove', (e: MouseEvent) => {
+            this.mouseMoveJob(e);
+        });
+        this.canvasBase.addEventListener('touchstart', (e) => {
+            this.mouseService.setStartPosition(e);
+        });
+        this.canvasBase.addEventListener('touchend', (e) => {
+            this.mouseService.end(e);
+        });
+        this.canvasBase.addEventListener('touchmove', (e) => {
+            this.mouseMoveJob(e);
+        });
     }
     private mouseMoveJob(e): void {
-    if (this.mouseService.getMoveFlag()) {
-        this.mouseService.mouseMove(e);
-        const position = this.buildDrawStatus(this.mouseService.getMousePosition());
-        this.draw(position);
-        this.sendDraw(position);
-    }
+        if (this.mouseService.getMoveFlag()) {
+            this.mouseService.mouseMove(e);
+            const position = this.buildDrawStatus(this.mouseService.getMousePosition());
+            this.pointer(position);
+            this.websocketService.send(
+                this.roomname,
+                {
+                    msg: 'draw',
+                    data: {
+                        'position': position
+                    }
+                }
+            );
+        }
     }
 
 
@@ -255,20 +266,35 @@ export class ScreenComponent implements OnInit {
      * @param mouse_position array
      */
     private draw(mouse_position): void {
-
-    this.ctx.beginPath();
-    this.ctx.moveTo(
-        mouse_position['startx'], mouse_position['starty']
-    );
-    this.ctx.lineTo(
-        mouse_position['movex'], mouse_position['movey']
-    );
-    this.ctx.lineCap = mouse_position['linecap'];
-    this.ctx.lineWidth = mouse_position['linewidth'];
-    this.ctx.strokeStyle = mouse_position['linecolor'];
-    this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(
+            mouse_position['startx'], mouse_position['starty']
+        );
+        this.ctx.lineTo(
+            mouse_position['movex'], mouse_position['movey']
+        );
+        this.ctx.lineCap = mouse_position['linecap'];
+        this.ctx.lineWidth = mouse_position['linewidth'];
+        this.ctx.strokeStyle = mouse_position['linecolor'];
+        this.ctx.stroke();
     }
+    /**
+     * マウスカーソルの表示
+     * @param mouse_position array
+     */
+    private pointer(mouse_position): void {
+        this.ctx.clearRect(0, 0, this.myvideoState.width, this.myvideoState.height);
+        this.ctx.beginPath();
+        this.ctx.arc(mouse_position['movex'], mouse_position['movey'], 20, 0, Math.PI * 2, false);
+        this.ctx.lineCap = mouse_position['linecap'];
+        this.ctx.lineWidth = mouse_position['linewidth'];
+        this.ctx.strokeStyle = mouse_position['linecolor'];
+        this.ctx.stroke();
+        this.ctx.font = 'italic 10px Arial';
+        this.ctx.fillStyle = mouse_position['linecolor'];
 
+        this.ctx.fillText(mouse_position['name'], mouse_position['movex'] + 20, mouse_position['movey'] - 15);
+    }
     /**
     * キャンバスに描く内容と描画オプションを結合
     * @param position object
@@ -278,7 +304,8 @@ export class ScreenComponent implements OnInit {
         linecap: this.canvasLineCap,
         linewidth: this.canvasLineWidth,
         linealpha: this.canvasAlpha,
-        linecolor: this.canvasLineColor
+        linecolor: this.userColor,
+        name: this.name
     };
     return Object.assign(position, options);
     }
@@ -348,6 +375,7 @@ export class ScreenComponent implements OnInit {
             return;
         }
         // this.initial();
+        this.userColor = this.userService.getColor();
         this.setup();
         // ゲスト接続の場合にroomname要求
         if (this.roomname !== '') {
@@ -504,6 +532,7 @@ export class ScreenComponent implements OnInit {
 
         console.log(register);
         this.screen.send({'message': register});
+
     }
 
     public videoPlaying(): void {
@@ -587,6 +616,8 @@ export class ScreenComponent implements OnInit {
                         document.getElementById('screenvideo'),
                         stream
                     );
+                    // スクリーンイベント登録
+                    this.setMouseEvent();
                 },
                 oncleanup: () => {
                     Janus.log(' ::: Got a cleanup notification (remote feed ' + id + ') :::');
@@ -743,6 +774,8 @@ export class ScreenComponent implements OnInit {
                                 this.hub();
                                 // websocket接続開始
                                 this.setupSocket();
+                                // スクリーンイベント登録
+                                this.setMouseEvent();
 
                                 if (this.contentService.checkShow('ScreenVideo') === false) {
                                     this.myvideoState.muted = 'muted';
@@ -756,8 +789,8 @@ export class ScreenComponent implements OnInit {
                                     && this.screen.webrtcStuff.pc.iceConnectionState !== 'connected') {
 
                                     this.contentService.changeState('ScreenBlock', true);
-
                                 }
+
                             },
                             onremotestream: (stream) => {
 

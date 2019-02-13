@@ -2,6 +2,7 @@ import { SocketService } from './core';
 import { SocketIDService, NameSpaceService, RoomService } from './service';
 
 import { UsersModel } from './model';
+// import { ConsoleReporter } from 'jasmine';
 
 export class ChatServer extends SocketService {
 
@@ -122,13 +123,15 @@ export class ChatServer extends SocketService {
      */
     private async joinUserSeaquens(m: any, socketid: string, namespace: string): Promise<any> {
         // 接続ユーザー情報保存
+        console.log(m);
         await this.socketID.setSocketid(
             socketid,
             {
                 socketid    : socketid,
                 namespace   : socketid,
                 room        : m['group'],
-                name        : m['name']
+                name        : m['name'],
+                color       : m['color']
             }
         );
 
@@ -145,7 +148,8 @@ export class ChatServer extends SocketService {
             userid      : socketid,
             room        : m['group'],
             namespace   : namespace,
-            name        : m['name']
+            name        : m['name'],
+            color       : m['color']
         });
 
         /**
@@ -165,7 +169,8 @@ export class ChatServer extends SocketService {
             namespace, m['group'], 'sys', {
                 data: {
                     socketid: socketid,
-                    name: m['name']
+                    name: m['name'],
+                    color: m['color']
                 },
                 type: 'new_user',
                 job: 'join'

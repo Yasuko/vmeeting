@@ -1,4 +1,5 @@
 
+export * from './mouse.service';
 export * from './websocket.service';
 export * from './webrtc.service';
 export * from './image.service';

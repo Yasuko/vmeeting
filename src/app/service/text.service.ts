@@ -45,6 +45,7 @@ export class TextService {
 
 export class Chat {
     name: string;
+    color: string;
     userid: string;
     tstamp: number;
     text: string;

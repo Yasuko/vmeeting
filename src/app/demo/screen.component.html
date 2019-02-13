@@ -37,12 +37,14 @@
 	</div>
 
 	<div class="page-header" *ngIf="showContent('HeaderScreen')">
-		<div class="button-m" (click)="stop()">終了</div>
+		<div class="exit-button" (click)="stop()">
+			<img src="assets/img/exit.png" alt="End ScreenShare">
+		</div>
 		<div class="members">
-			<span>Person::</span>
+			<span>Persons　</span>
 			<ng-container *ngFor="let user of getUsers()">
 			<div class="member-detail">
-				<p>{{user.name}}</p>
+				<p [style.background-color]="user.color">{{user.name}}</p>
 			</div>
 			</ng-container>
 		</div>
@@ -64,57 +66,73 @@
 				width="100%" height="100%"
 				*ngIf="showContent('WaitingVideo')" >
 			</video>
-			<video
-				class="rounded centered" id="screenvideo"
+			<div class="screen-videobox">
+				<video
+					id="screenvideo"
+					[attr.width]="myvideoState.width"
+					[attr.height]="myvideoState.height"
+					[attr.muted]="myvideoState.muted"
+					autoplay playsinline 
+					(playing)="videoPlaying()">
+				</video>
+			</div>
+			<div
+				class="screen-artbox"
 				[attr.width]="myvideoState.width"
-				[attr.height]="myvideoState.height"
-				[attr.muted]="myvideoState.muted"
-				autoplay playsinline 
-				(playing)="videoPlaying()">
-			</video>
+				[attr.height]="myvideoState.height">
+				<canvas
+					width={{myvideoState.width}}
+					height={{myvideoState.height}}
+					id="artbox"></canvas>
+			</div>
 		</div>
 	</div>
 </div>
-<div
-class="take-screenshot"
-(click)="captureScreen()"
-*ngIf="showContent('Room')">ScreenShot</div>
-<div
-	class="dashbord"
-	(click)="changeContent('ScreenDashbord')"><<</div>
-<div class="page-tools" *ngIf="showContent('ScreenDashbord')">
+
+<div class="page-tools" *ngIf="showContent('Room')">
+	<div
+		class="tool-button"
+		(click)="captureScreen()">
+		<img src="assets/img/sshot.png" alt="Take ScreenShot">
+	</div>
 	<div class="tool-button" (click)="changeDashbordeContent('ScreenCapture')">
-		<p>Capture</p>
+		<img src="assets/img/edit.png" alt="Edit ScreenShot">
 	</div>
 	<div class="tool-button" (click)="changeDashbordeContent('ScreenText')">
-		<p>Chat</p>
+		<img src="assets/img/chat.png" alt="Chat">
 	</div>
 	<div class="tool-button" (click)="changeDashbordeContent('ScreenStory')">
-		<p>Story</p>
+		<img src="assets/img/memo.png" alt="View Story">
 	</div>
 </div>
-
+<!--
+	スクリーンショット
+-->
 <div class="screen-capture" *ngIf="showContent('ScreenCapture')">
 	<div><h3>ScreenShot</h3></div>
-	<div class="button-m" (click)="closeDashborde()">Close</div>
+	<div class="button-close" (click)="closeDashborde()">Close</div>
 	<ng-container *ngFor="let cap of getAllCapture(); index as i">
-	<div (click)="startCaptureEdit(i)">
+	<div (click)="startCaptureEdit(i)" class="screen-list">
 		<span>{{i}}</span>
 		<img src="{{cap}}" width=180>
 	</div>
 	</ng-container>
 </div>
-
+<!--
+	スクリーンショット編集
+-->
 <div class="page-editer" *ngIf="showContent('CaptureEditer')">
 	<canvas id="editbox"
 		width=700 height=400></canvas>
 	<img src="{{getCapture()}}">
-	<div>閉じる</div>
+	<div (click)="changeContent('CaptureEditer')">閉じる</div>
 </div>
-
+<!--
+	チャット
+-->
 <div class="screen-text" *ngIf="showContent('ScreenText')">
 	<div><h3>Chat</h3></div>
-	<div class="button-m" (click)="closeDashborde()">Close</div>
+	<div class="button-close" (click)="closeDashborde()">Close</div>
 	<div class="chat-window">
 	<ng-container *ngFor="let chats of getChatData(); index as i">
 		<div class="chat-text">
@@ -135,10 +153,12 @@ class="take-screenshot"
 		<div class="center-button-s" (click)="sendChat()">send</div>
 	</div>
 </div>
-
+<!--
+	ストーリーボード
+-->
 <div class="screen-story" *ngIf="showContent('ScreenStory')">
 	<div><h3>Story</h3></div>
-	<div class="button-m" (click)="closeDashborde()">Close</div>
+	<div class="button-close" (click)="closeDashborde()">Close</div>
 	<div class="story-borde">
 		<div class="story-capture">
 
