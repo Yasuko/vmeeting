@@ -35,7 +35,7 @@
 			</div>
 		</div>
 	</div>
-
+	<div><audio id="audio_0" autoplay></audio></div>
 	<div class="page-header" *ngIf="showContent('HeaderScreen')">
 		<div class="exit-button" (click)="stop()">
 			<img src="assets/img/exit.png" alt="End ScreenShare">
@@ -46,6 +46,7 @@
 			<div class="member-detail">
 				<p [style.background-color]="user.color">{{user.name}}</p>
 			</div>
+			<div><audio id="audio_{{user.id}}" autoplay></audio></div>
 			</ng-container>
 		</div>
 		<div class="header-status">

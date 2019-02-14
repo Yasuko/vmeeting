@@ -27,6 +27,7 @@ export class ScreenComponent implements OnInit {
     private opaqueId = '';
 
     public onStart = false;
+    public onwebrtcUp = false;
 
     public capture = '';
     public desc = '';
@@ -555,7 +556,8 @@ export class ScreenComponent implements OnInit {
                     );
                     Janus.log('  -- This is a subscriber');
                     // We wait for the plugin to send us an offer
-                    const listen = { 'request': 'join', 'room': Number(this.room), 'ptype': 'listener', 'feed': id };
+                    // const listen = { 'request': 'join', 'room': Number(this.room), 'ptype': 'listener', 'feed': id };
+                    const listen = { 'request': 'join', 'room': Number(this.room), 'ptype': 'subscriber', 'feed': id };
                     remoteFeed.send({'message': listen});
                 },
                 error: (error) => {
@@ -575,8 +577,37 @@ export class ScreenComponent implements OnInit {
                                 ' (' + display + ') in room ' + msg['room']);
                             this.contentService.changeState('ScreenMenu', false);
                             this.contentService.changeState('Room', true);
-                        } else {
-                            // What has just happened?
+                            if (!this.onwebrtcUp) {
+                                this.onwebrtcUp = true;
+                                // Publish our stream
+                                this.screen.createOffer(
+                                    {
+                                        media: { video: false},	// This is an audio only room
+                                        success: (_jsep) => {
+                                            const publish = { 'request': 'configure', 'muted': false };
+                                            this.screen.send({'message': publish, 'jsep': _jsep});
+                                        },
+                                        error: (error) => {
+                                            Janus.error('WebRTC error:', error);
+                                        }
+                                    });
+                            }
+                        } else if (event === 'joined') {
+                            if (!this.onwebrtcUp) {
+                                this.onwebrtcUp = true;
+                                // Publish our stream
+                                this.screen.createOffer(
+                                    {
+                                        media: { video: false},	// This is an audio only room
+                                        success: (_jsep) => {
+                                            const publish = { 'request': 'configure', 'muted': false };
+                                            this.screen.send({'message': publish, 'jsep': _jsep});
+                                        },
+                                        error: (error) => {
+                                            Janus.error('WebRTC error:', error);
+                                        }
+                                    });
+                            }
                         }
                     }
                     if (jsep !== undefined && jsep !== null) {
@@ -764,36 +795,42 @@ export class ScreenComponent implements OnInit {
                             },
 
                             onlocalstream: (stream) => {
-                                Janus.debug(' ::: Got a local stream :::');
-                                Janus.debug(stream);
+                                if (this.mode === 'master') {
+                                    Janus.debug(' ::: Got a local stream :::');
+                                    Janus.debug(stream);
 
-                                this.setCaptureTarget();
-                                this.contentService.showLocalStream();
+                                    this.setCaptureTarget();
+                                    this.contentService.showLocalStream();
 
-                                // websocket受信待受
-                                this.hub();
-                                // websocket接続開始
-                                this.setupSocket();
-                                // スクリーンイベント登録
-                                this.setMouseEvent();
+                                    // websocket受信待受
+                                    this.hub();
+                                    // websocket接続開始
+                                    this.setupSocket();
+                                    // スクリーンイベント登録
+                                    this.setMouseEvent();
 
-                                if (this.contentService.checkShow('ScreenVideo') === false) {
-                                    this.myvideoState.muted = 'muted';
-                                    this.contentService.changeState('ScreenVideo', true);
-                                }
-                                Janus.attachMediaStream(
-                                    document.getElementById('screenvideo'),
-                                    stream
-                                );
-                                if (this.screen.webrtcStuff.pc.iceConnectionState !== 'completed'
-                                    && this.screen.webrtcStuff.pc.iceConnectionState !== 'connected') {
+                                    if (this.contentService.checkShow('ScreenVideo') === false) {
+                                        this.myvideoState.muted = 'muted';
+                                        this.contentService.changeState('ScreenVideo', true);
+                                    }
+                                    Janus.attachMediaStream(
+                                        document.getElementById('screenvideo'),
+                                        stream
+                                    );
+                                    if (this.screen.webrtcStuff.pc.iceConnectionState !== 'completed'
+                                        && this.screen.webrtcStuff.pc.iceConnectionState !== 'connected') {
 
-                                    this.contentService.changeState('ScreenBlock', true);
+                                        this.contentService.changeState('ScreenBlock', true);
+                                    }
                                 }
 
                             },
                             onremotestream: (stream) => {
-
+                                console.log(stream);
+                                Janus.attachMediaStream(
+                                    document.getElementById('audio_0'),
+                                    stream
+                                );
                             },
                             oncleanup: () => {
                                 Janus.log(' ::: Got a cleanup notification :::');
