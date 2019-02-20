@@ -115,7 +115,7 @@
 	<ng-container *ngFor="let cap of getAllCapture(); index as i">
 	<div (click)="startCaptureEdit(i)" class="screen-list">
 		<span>{{i}}</span>
-		<img src="{{cap}}" width=180>
+		<img src="{{cap.image}}" width=180>
 	</div>
 	</ng-container>
 </div>
@@ -123,22 +123,65 @@
 	スクリーンショット編集
 -->
 <div class="page-editer" *ngIf="showContent('CaptureEditer')">
-	<canvas id="editbox"
-		width=700 height=400></canvas>
-	<img src="{{getCapture()}}">
-	<div (click)="changeContent('CaptureEditer')">閉じる</div>
+	<div class="screen"></div>
+	<div class="canvas-layer">
+		<canvas id="editbox" width=1024 height=600></canvas>
+	</div>
+	<div class="canvas-layer">
+		<canvas id="layerbox" width=1024 height=600></canvas>
+	</div>
+	<div class="canvas-layer"
+		(mousemove)="moveEditerTagPosition($event)">
+		<ng-container *ngFor="let tag of getCaptureTags(); let t = index">
+			<div
+			[style.top]="tag.top + 'px'"
+			[style.left]="tag.left + 'px'"
+			class="editer-tags">
+				<div class="editer-tag-header">
+					<div class="editer-tags-move"
+					(mousedown)="moveEditerTag(t, true, $event)"
+					(mouseup)="moveEditerTag(t, false, $event)"
+					(mouseup)="moveEditerTag(t, false, $event)"
+					(mouseleave)="moveEditerTag(t, false)">==</div>
+					<div
+						class="editer-tags-delete"
+						(click)="deleteTag(t)">☓</div>
+				</div>
+				<div class="editer-tags-text">
+					<input type="text" [(ngModel)]="tag.text">
+				</div>
+			</div>
+		</ng-container>
+	</div>
+	<div class="art-tool">
+	<ng-container *ngFor="let c of canvasColorList; let i = index">
+		<div
+		[style.backgroundColor]="c"
+		class="art-tool-palet"
+		(click)="setPaintColor(c)">
+		</div>
+	</ng-container>
+		<div class="art-tool-palet" (click)="addEditerTag($event)">
+			<img src="assets/img/tag.png">
+		</div>
+	</div>
+	<div class="close-edit" (click)="closeCaputureEdit()">Close</div>
 </div>
 <!--
 	チャット
 -->
 <div class="screen-text" *ngIf="showContent('ScreenText')">
-	<div><h3>Chat</h3></div>
 	<div class="button-close" (click)="closeDashborde()">Close</div>
-	<div class="chat-window">
+	<div
+		class="chat-window"
+		(dragover)="onDragOverHandler($event)">
+	<div class="drag-screen" *ngIf="onDrag"
+		(dragleave)="onDragLeaveHandler($event)"
+		(drop)="onSelectHandler($event)">ファイルをまとめてドラッグ</div>
 	<ng-container *ngFor="let chats of getChatData(); index as i">
 		<div class="chat-text">
+			<span>{{chats.name}}:</span>
 			<span>{{chats.text}}</span>
-			<span>：{{chats.name}}</span>
 		</div>
 	</ng-container>
 	</div>
@@ -151,7 +194,29 @@
 				(keypress)="sendChatByEnter($event)"/>
 			<i class="fa fa-user fa-lg fa-fw" aria-hidden="true"></i>
 		</div>
-		<div class="center-button-s" (click)="sendChat()">send</div>
+		<div class="chat-send-button" (click)="sendChat()">send</div>
+	</div>
+	<div class="chat-item-bord">
+		<div class="chat-item-list">
+		<ng-container *ngFor="let img of getAllImage(); index as i">
+			<div class="chat-items">
+				<img src="{{img.data}}" width=60 />
+				<div>{{img.name}}</div>
+				<div
+					class="chat-item-download-button"
+					(click)="saveFile('image', i)">DL</div>
+			</div>
+		</ng-container>
+		<ng-container *ngFor="let item of getAllFile(); index as i">
+			<div class="chat-items">
+				<img src="assets/img/{{getIcon(item.type)}}.png" width=70 />
+				<div>{{item.name}}</div>
+				<div
+					class="chat-item-download-button"
+					(click)="saveFile('file', i)">DL</div>
+			</div>
+		</ng-container>
+		</div>
 	</div>
 </div>
 <!--

@@ -24,6 +24,7 @@ export class TextService {
     }
 
     public addChat(chat: Chat, user: object = null): void {
+        console.log(chat);
         if (user !== null) {
             chat.userid = user['userid'];
             chat.name = user['name'];
@@ -50,3 +51,4 @@ export class Chat {
     tstamp: number;
     text: string;
 }
+

@@ -17,8 +17,12 @@ import { AlertComponent, ConfirmationComponent, LoadingComponent } from './_lib_
 
 import { MessageService } from './message/message.service';
 import {
-   WebSocketService, WebRTCService, ImageService, MouseService
+   WebSocketService, WebRTCService, ImageService,
+   MouseService, FileService
 } from './service';
+import { ImageSaveService } from './_lib_service';
+
+
 // import { JanusService } from './service';
 
 import { SubjectsService } from './service';
@@ -55,7 +59,8 @@ import {
     WebRTCService,
     ImageService,
     TextService, UserService, ContentService, DrawService,
-    StoryService
+    StoryService, FileService,
+    ImageSaveService
   ],
   bootstrap: [
     AppComponent,

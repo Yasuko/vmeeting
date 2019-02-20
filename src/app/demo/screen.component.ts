@@ -4,8 +4,11 @@ declare var adapter: any;
 declare var Janus: any;
 import { SubjectsService, ImageService } from '../service';
 import { WebSocketService, MouseService } from '../service';
-import { UserService, ContentService, TextService } from '../service';
-import { DrawService, StoryService } from '../service';
+import {
+    UserService, ContentService, TextService,
+    StoryService, FileService
+} from '../service';
+import { ImageSaveService } from '../_lib_service';
 
 @Component({
   selector: 'app-screen',
@@ -43,14 +46,21 @@ export class ScreenComponent implements OnInit {
     // テキストチャット
     public chatMess = '';
 
+    // ドラッグ、ドロップ
+    public onDrag = false;
+    public Reader: FileReader = null;
+
     // キャプチャ編集
     private canvasID = 'artbox';
     private canvasBase: HTMLCanvasElement;
     private ctx;
 
+    private captureEditerID = 'editbox';
+    private captureLayerID = 'layerbox';
+
     canvasColorList = [
-      '#E60012', '#F39800', '#FFF100', '#8FC31F', '#009944', '#009E96',
-      '#00A0E9', '#0068B7', '#1D2088', '#920783', '#E4007F', '#E5004F',
+      '#E60012', '#F39800', '#FFF100', '#8FC31F', '#009944',
+      '#00A0E9', '#1D2088', '#E4007F', '#E5004F',
       '#808080', '#000000', '#FFFFFF'
     ];
 
@@ -68,7 +78,7 @@ export class ScreenComponent implements OnInit {
 
     public myvideoState = {
         'width': 1024,
-        'height': 720,
+        'height': 600,
         'muted': 'muted',
     };
     public peervideoState = {
@@ -90,7 +100,9 @@ export class ScreenComponent implements OnInit {
         private userService: UserService,
         private contentService: ContentService,
         private textService: TextService,
-        private storyService: StoryService
+        private storyService: StoryService,
+        private fileService: FileService,
+        private imageSaveService: ImageSaveService
     ) {
     }
 
@@ -110,34 +122,46 @@ export class ScreenComponent implements OnInit {
             console.log(msg);
             this.userService.addMultiUser(msg);
         });
-        this.subjectService.on('on_' + this.roomname)
+        this.subjectService.on('pub_file_send')
         .subscribe((msg: any) => {
-            if (this.mode === 'master' && msg['msg'] === 'new_client') {
-                this.websocketService.send(
-                    this.roomname,
-                    {
-                        msg: 'connectionid',
-                        data: this.roomname
-                    }
-                );
-            } else {
-                this.socketHub(msg);
-            }
+            this.websocketService.send(
+                this.roomname,
+                {
+                    msg: 'file_send',
+                    data: msg
+                }
+            );
         });
+        this.subjectService.on('on_' + this.roomname)
+            .subscribe((msg: any) => {
+                if (this.mode === 'master' && msg['msg'] === 'new_client') {
+                    this.websocketService.send(
+                        this.roomname,
+                        {
+                            msg: 'connectionid',
+                            data: this.roomname
+                        }
+                    );
+                } else {
+                    this.socketHub(msg);
+                }
+            });
     }
 
     private socketHub(msg: any): void {
         if (msg['msg'] === 'connectionid') {
-            console.log(msg);
-            this.roomid = msg['data'];
+            if (this.roomid === 0) {
+                console.log(msg);
+                this.roomid = msg['data'];
+            }
         } else if (msg['msg'] === 'text') {
             // console.log(msg);
             this.textService.addChat(msg['data']);
         } else if (msg['msg'] === 'draw') {
             this.pointer(msg['data']['position']);
             // console.log(msg);
-        } else if (msg['msg'] === 'image') {
-            console.log(msg);
+        } else if (msg['msg'] === 'file_send') {
+            this.fileService.addRemoteFile(msg['data']);
         }
     }
 
@@ -146,6 +170,8 @@ export class ScreenComponent implements OnInit {
         if (room.hasOwnProperty('room')) {
             console.log(room);
             this.roomname = room['room'];
+            // ゲスト接続の場合にroomname要求
+            this.mode = 'client';
         }
     }
 
@@ -200,6 +226,7 @@ export class ScreenComponent implements OnInit {
             {
                 msg: 'text',
                 data: {
+                    name: this.name,
                     text: this.chatMess,
                     tstamp: this.textService.getTimeStamp()
                 }
@@ -208,7 +235,47 @@ export class ScreenComponent implements OnInit {
         this.chatMess = '';
     }
 
+    public onDragOverHandler(e: any): void {
+        e.preventDefault();
+        this.onDrag = true;
+    }
 
+    public onDragLeaveHandler(e: any): void {
+        e.stopPropagation();
+        this.onDrag = false;
+    }
+
+    public onSelectHandler(e: any): void {
+        this.onDrag = false;
+        e.preventDefault();
+        this.fileService.getDragFile(e);
+    }
+
+    public getAllImage(): object {
+        return this.fileService.getAllImage();
+    }
+    public getAllFile(): object {
+        return this.fileService.getAllFile();
+    }
+    public getIcon(type): string {
+        return this.fileService.getIcon(type);
+    }
+
+    public saveFile(target, index): void {
+        let file: any = {};
+        if (target === 'image') {
+            file = this.fileService.getImageByIndex(index);
+        } else {
+            file = this.fileService.getFileByIndex(index);
+        }
+        console.log(file);
+        this.imageSaveService.setParam(
+            file.name,
+            file.type,
+            file.data
+        );
+        this.imageSaveService.saveImage();
+    }
     /**
      *
      * お絵かき
@@ -222,7 +289,7 @@ export class ScreenComponent implements OnInit {
 
         const rect = this.canvasBase.getBoundingClientRect();
         console.log(rect);
-        this.mouseService.setCorrection(rect);
+        // this.mouseService.setCorrection(rect);
 
         this.canvasBase.addEventListener('mousedown', (e: MouseEvent) => {
             this.mouseService.setStartPosition(e);
@@ -301,24 +368,15 @@ export class ScreenComponent implements OnInit {
     * @param position object
     */
     private buildDrawStatus(position: object): object {
-    const options = {
-        linecap: this.canvasLineCap,
-        linewidth: this.canvasLineWidth,
-        linealpha: this.canvasAlpha,
-        linecolor: this.userColor,
-        name: this.name
-    };
-    return Object.assign(position, options);
+        const options = {
+            linecap: this.canvasLineCap,
+            linewidth: this.canvasLineWidth,
+            linealpha: this.canvasAlpha,
+            linecolor: this.userColor,
+            name: this.name
+        };
+        return Object.assign(position, options);
     }
-
-    /**
-    * ペイント色の変更
-    * @param color string
-    */
-    public setPaintColor(color: string): void {
-    this.canvasLineColor = color;
-    }
-
 
     /**
      *
@@ -378,10 +436,6 @@ export class ScreenComponent implements OnInit {
         // this.initial();
         this.userColor = this.userService.getColor();
         this.setup();
-        // ゲスト接続の場合にroomname要求
-        if (this.roomname !== '') {
-            this.mode = 'client';
-        }
     }
 
     public stop(): void {
@@ -478,6 +532,9 @@ export class ScreenComponent implements OnInit {
         }
     }
 
+    /**
+     * 画面キャプチャ
+     */
     public setCaptureTarget(): void {
         this.imageService.setTarget(
             document.getElementById('screenvideo'),
@@ -489,6 +546,9 @@ export class ScreenComponent implements OnInit {
         this.imageService.addCapture();
     }
 
+    /**
+     * キャプチャ確認
+     */
     public getAllCapture(): object {
         return this.imageService.getCapture();
     }
@@ -498,14 +558,58 @@ export class ScreenComponent implements OnInit {
                 );
     }
 
+    public getCaptureTags(): object {
+        return this.imageService.getTags();
+    }
+
+    /**
+     * キャプチャ編集
+     */
     public startCaptureEdit(target): void {
         this.editCaptureTarget = target;
         this.contentService.changeState('CaptureEditer', true);
+        this.imageService.setEditer(this.captureEditerID, this.captureLayerID);
+        this.imageService.setupEditImage(target).
+            then(() => {
+                this.imageService.setupEditer();
+            });
     }
 
+    /**
+    * ペイント色の変更
+    * @param color string
+    */
+    public setPaintColor(color: string): void {
+        this.imageService.setLineColor(color);
+    }
+    /**
+     * タグ移動On/OFF
+     */
+    public moveEditerTag(index, on, e: any = null): void {
+        if (on) {
+            this.imageService.setMoveTag(index, e);
+        } else {
+            this.imageService.closeMoveTag(e);
+        }
+    }
+    /**
+     * タグ移動処理
+     * @param e マウスイベント
+     */
+    public moveEditerTagPosition(e): void {
+        this.imageService.moveTag(e);
+    }
+    public deleteTag(index): void {
+        this.imageService.deleteTag(index);
+    }
+
+    public addEditerTag(e): void {
+        this.imageService.setupTag();
+    }
     public closeCaputureEdit(): void {
-        this.editCaptureTarget = null;
+        this.imageService.closeEditer(this.editCaptureTarget);
         this.contentService.changeState('CaptureEditer', false);
+        this.editCaptureTarget = null;
     }
 
     public joinScreen(): void {
@@ -674,6 +778,7 @@ export class ScreenComponent implements OnInit {
 
                                 // クライアントの場合ノード接続開始
                                 if (this.mode === 'client') {
+                                    console.log('Setup Websocket Client Mode');
                                     // websocket受信待受
                                     this.hub();
                                     // websocket 接続開始
@@ -803,6 +908,7 @@ export class ScreenComponent implements OnInit {
                                     this.contentService.showLocalStream();
 
                                     // websocket受信待受
+                                    console.log('Setup Websocket Master Mode');
                                     this.hub();
                                     // websocket接続開始
                                     this.setupSocket();

@@ -48,16 +48,18 @@ export class ChatServer extends SocketService {
              */
             this.joinRoom(socket.id, namespace)
                 .then((result) => {
-                    for (const key in this.Rooms) {
-                        if (this.Rooms.hasOwnProperty(key)) {
-                            this.addNormalEmitEvent(
-                                socket.id,
-                                this.socketID.getSocketid(
-                                    this.Sockets[socket.id]['id']
-                                )['room'],
-                                this.Rooms[key],
-                                namespace
-                            );
+                    if (result) {
+                        for (const key in this.Rooms) {
+                            if (this.Rooms.hasOwnProperty(key)) {
+                                this.addNormalEmitEvent(
+                                    socket.id,
+                                    this.socketID.getSocketid(
+                                        this.Sockets[socket.id]['id']
+                                    )['room'],
+                                    this.Rooms[key],
+                                    namespace
+                                );
+                            }
                         }
                     }
                 });
@@ -74,7 +76,9 @@ export class ChatServer extends SocketService {
     }
 
     private addRoom(room: string): void {
-        this.Rooms.push(room);
+        if (this.Rooms.indexOf(room) === -1) {
+            this.Rooms.push(room);
+        }
     }
 
     private delRoom(room): void {
@@ -83,7 +87,7 @@ export class ChatServer extends SocketService {
     }
 
     private checkRoomName(name: string): boolean {
-        if (!this.Rooms.hasOwnProperty(name)) {
+        if (this.Rooms.indexOf(name) === -1) {
             this.Rooms.push(name);
             return true;
         }
@@ -122,6 +126,7 @@ export class ChatServer extends SocketService {
      * @param namespace 接続されたネームスペース
      */
     private async joinUserSeaquens(m: any, socketid: string, namespace: string): Promise<any> {
+
         // 接続ユーザー情報保存
         console.log(m);
         await this.socketID.setSocketid(

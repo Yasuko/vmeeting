@@ -4,8 +4,8 @@ import { Subject } from 'rxjs';
 @Injectable()
 export class MouseService {
 
-    private correctionX: number;
-    private correctionY: number;
+    private correctionX: number = 0;
+    private correctionY: number = 0;
     private mouseStartX: number;
     private mouseStartY: number;
     private mouseMoveX: number;
@@ -15,7 +15,19 @@ export class MouseService {
     constructor(
 
     ) {}
+    public mouseEventOff(e: any): void {
+        e.preventDefault();
+    }
+    public mouseEventOn(e: any): void {
+        e.stopPropagation();
+    }
+    public convertMouseDefference(e: any, top, left): object {
+        const position = this.getPositions(e);
 
+        const x = position['x'] - left;
+        const y = position ['y'] - top;
+        return {mousex: x, mousey: y};
+    }
     public setCorrection(rect: DOMRect | ClientRect): void {
         this.correctionX = rect.left;
         this.correctionY = rect.top;
@@ -26,10 +38,8 @@ export class MouseService {
         this.reset();
         const position = this.getPositions(e);
 
-        // this.mouseStartX = position['x'] - this.correctionX;
-        // this.mouseStartY = position ['y'] - this.correctionY;
-        this.mouseStartX = position['x'];
-        this.mouseStartY = position ['y'];
+        this.mouseStartX = position['x'] - this.correctionX;
+        this.mouseStartY = position ['y'] - this.correctionY;
         this.moveSwitch = true;
     }
 
@@ -46,10 +56,8 @@ export class MouseService {
                 this.mouseStartX = this.mouseMoveX;
                 this.mouseStartY = this.mouseMoveY;
             }
-            // this.mouseMoveX = position['x'] - this.correctionX;
-            // this.mouseMoveY = position['y'] - this.correctionY;
-            this.mouseMoveX = position['x'];
-            this.mouseMoveY = position['y'];
+            this.mouseMoveX = position['x'] - this.correctionX;
+            this.mouseMoveY = position['y'] - this.correctionY;
         }
     }
 
@@ -66,7 +74,7 @@ export class MouseService {
         return this.moveSwitch;
     }
 
-    private getPositions(e: any): object {
+    public getPositions(e: any): object {
         if (!e.clientX) {
             return {x: e.pageX, y: e.pageY};
         } else {

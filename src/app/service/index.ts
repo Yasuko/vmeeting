@@ -14,6 +14,7 @@ export * from './subjects.service';
 export * from './story.service';
 export * from './draw.service';
 export * from './text.service';
+export * from './file.service';
 export * from './user.service';
 export * from './content.service';
 

@@ -126,6 +126,7 @@ export class SocketService {
     public addNormalEmitEvent(socketid: string, room: string, tag: string, namespace: string): void {
         console.log('tag :: ' + tag);
         this.Sockets[socketid].on(tag, (m: any) => {
+            console.log(m['data']);
             if ('to' in m['data']) {
                 // ルームの特定のメンバーへメッセージ送信
                 m['data']['id'] = socketid;

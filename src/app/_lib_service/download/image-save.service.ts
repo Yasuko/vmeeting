@@ -25,8 +25,9 @@ export class ImageSaveService {
         */
         saveImage(): void {
             const dlData = this.Base64toBlob(this.imageData);
-            const type = this.imageType.split('/');
-            this.saveBlob(dlData, this.imageName + '.' + type[1]);
+            // const type = this.imageType.split('/');
+            // this.saveBlob(dlData, this.imageName + '.' + type[0]);
+            this.saveBlob(dlData, this.imageName);
         }
         Base64toBlob(base64): any {
             const tmp = base64.split(',');
