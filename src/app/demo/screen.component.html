@@ -35,7 +35,14 @@
 			</div>
 		</div>
 	</div>
-	<div><audio id="audio_0" autoplay></audio></div>
+	<div>
+		<video id="audio0" autoplay playsinline></video>
+		<video id="audio1" autoplay playsinline></video>
+		<video id="audio2" autoplay playsinline></video>
+		<video id="audio3" autoplay playsinline></video>
+		<video id="audio4" autoplay playsinline></video>
+		<video id="audio5" autoplay playsinline></video>
+	</div>
 	<div class="page-header" *ngIf="showContent('HeaderScreen')">
 		<div class="exit-button" (click)="stop()">
 			<img src="assets/img/exit.png" alt="End ScreenShare">
@@ -73,7 +80,7 @@
 					[attr.width]="myvideoState.width"
 					[attr.height]="myvideoState.height"
 					[attr.muted]="myvideoState.muted"
-					autoplay playsinline 
+					autoplay playsinline
 					(playing)="videoPlaying()">
 				</video>
 			</div>

@@ -124,9 +124,8 @@ export class SocketService {
      * tagに指定した識別子で接続された場合に処理を実行
      */
     public addNormalEmitEvent(socketid: string, room: string, tag: string, namespace: string): void {
-        console.log('tag :: ' + tag);
+        // console.log('tag :: ' + tag);
         this.Sockets[socketid].on(tag, (m: any) => {
-            console.log(m['data']);
             if ('to' in m['data']) {
                 // ルームの特定のメンバーへメッセージ送信
                 m['data']['id'] = socketid;

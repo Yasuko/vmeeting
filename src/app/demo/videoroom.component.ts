@@ -211,7 +211,12 @@ export class VideoroomComponent implements OnInit {
                 this.showRegister = true;
                 return;
             }
-            const register = { 'request': 'join', 'room': this.myroom, 'ptype': 'publisher', 'display': this.username };
+            const register = {
+                'request': 'join',
+                'room': this.myroom,
+                'ptype': 'publisher',
+                'display': this.username
+            };
             this.myusername = this.username;
             this.sfutest.send({'message': register});
         }
