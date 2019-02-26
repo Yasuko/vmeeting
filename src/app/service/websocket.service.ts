@@ -124,6 +124,7 @@ export class WebSocketService {
         new Observable<any>(observer => {
           this.socket.on('sys', (data: any) => observer.next(data));
         }).subscribe((result) => {
+          console.log(result);
             if (result['job'] === 'join') {
               this.subjectService
               .publish('on_join', result);

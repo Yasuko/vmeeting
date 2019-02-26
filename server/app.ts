@@ -190,7 +190,7 @@ export class ChatServer extends SocketService {
      * @param socketid コネクション時の固有番号
      */
     private async disconnected(socketid: string): Promise<void> {
-        // MongoDBにも保存
+        // MongoDBからユーザー情報取得
         const user = await this.usersModel.getByUserid(socketid);
         console.log(user);
         await this.emitAll(

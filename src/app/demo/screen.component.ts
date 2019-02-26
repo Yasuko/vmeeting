@@ -115,9 +115,10 @@ export class ScreenComponent implements OnInit {
     }
 
     private hub(): void {
-        this.subjectService.on('sys')
+        this.subjectService.on('on_leave')
         .subscribe((msg: any) => {
           console.log(msg);
+          this.userService.delUserByUserId(msg['data']['id']);
         });
         this.subjectService.on('on_allusers')
         .subscribe((msg: any) => {
@@ -512,8 +513,8 @@ export class ScreenComponent implements OnInit {
         // Create a new room
         const desc = this.desc;
         this.role = 'publisher';
-        /*
-        const create = { 'request': 'create', 'description': desc, 'bitrate': 500000, 'publishers': 1 };
+/*
+        const create = { 'request': 'create', 'description': desc, 'bitrate': 500000 };
         this.screen.send({'message': create, success: (result) => {
             const event = result['videoroom'];
             Janus.debug('Event: ' + event);
@@ -531,7 +532,8 @@ export class ScreenComponent implements OnInit {
                 };
                 this.screen.send({'message': register});
             }
-        }});*/
+        }});
+*/
         this.room = 1234;
         this.roomname = String(this.room);
         Janus.log('Screen sharing session created: ' + this.room);
@@ -892,6 +894,11 @@ export class ScreenComponent implements OnInit {
                                                 }
                                             }
                                         }
+                                    } else if (event === 'destroyed') {
+                                        // befor bootbox
+                                        console.log('The room has been destroyed', () => {
+                                            window.location.reload();
+                                        });
                                     } else if (event === 'event') {
                                         // Any feed to attach to?
                                         if (msg['publishers'] !== undefined
@@ -913,6 +920,19 @@ export class ScreenComponent implements OnInit {
                                             // One of the publishers has gone away?
                                             const leaving = msg['leaving'];
                                             Janus.log('Publisher left: ' + leaving);
+                                            let remoteFeed = null;
+                                            for (let i = 0; i < 5; i++) {
+                                                if (this.feeds[i] !== undefined
+                                                    && this.feeds[i] !== undefined
+                                                    && this.feeds[i].rfid === leaving) {
+                                                    remoteFeed = this.feeds[i];
+                                                    break;
+                                                }
+                                            }
+                                            if (remoteFeed !== null) {
+                                                this.feeds[remoteFeed.rfindex] = null;
+                                                remoteFeed.detach();
+                                            }
                                             if (this.mode === 'client' && msg['leaving'] === this.source) {
                                                 // before bootbox alert
                                                 console.log(
@@ -920,6 +940,28 @@ export class ScreenComponent implements OnInit {
                                                     () => {
                                                     window.location.reload();
                                                 });
+                                            }
+                                        } else if (msg['unpublished'] !== undefined && msg['unpublished'] !== null) {
+                                            // One of the publishers has unpublished?
+                                            const unpublished = msg['unpublished'];
+                                            Janus.log('Publisher left: ' + unpublished);
+                                            if (unpublished === 'ok') {
+                                                // That's us
+                                                this.screen.hangup();
+                                                return;
+                                            }
+                                            let remoteFeed = null;
+                                            for (let i = 1; i < 6; i++) {
+                                                if (this.feeds[i] !== null
+                                                    && this.feeds[i] !== undefined
+                                                    && this.feeds[i].rfid === unpublished) {
+                                                    remoteFeed = this.feeds[i];
+                                                    break;
+                                                }
+                                            }
+                                            if (remoteFeed != null) {
+                                                this.feeds[remoteFeed.rfindex] = null;
+                                                remoteFeed.detach();
                                             }
                                         } else if (msg['error'] !== undefined && msg['error'] !== null) {
                                             // before bootbox alert

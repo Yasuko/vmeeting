@@ -19,6 +19,11 @@ export class UserService {
         this.users = users;
     }
 
+    public delUserByUserId(userid: string): void {
+        const users = this.users.filter(n => n.userid !== userid);
+        this.users = users;
+    }
+
     public getUserByName(name: string): User {
         const users = this.users.filter(n => n.name === name);
         return users[0];

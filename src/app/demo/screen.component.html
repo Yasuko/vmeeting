@@ -36,12 +36,12 @@
 		</div>
 	</div>
 	<div>
-		<video id="audio0" autoplay playsinline></video>
-		<video id="audio1" autoplay playsinline></video>
-		<video id="audio2" autoplay playsinline></video>
-		<video id="audio3" autoplay playsinline></video>
-		<video id="audio4" autoplay playsinline></video>
-		<video id="audio5" autoplay playsinline></video>
+		<audio id="audio0" autoplay playsinline></audio>
+		<audio id="audio1" autoplay playsinline></audio>
+		<audio id="audio2" autoplay playsinline></audio>
+		<audio id="audio3" autoplay playsinline></audio>
+		<audio id="audio4" autoplay playsinline></audio>
+		<audio id="audio5" autoplay playsinline></audio>
 	</div>
 	<div class="page-header" *ngIf="showContent('HeaderScreen')">
 		<div class="exit-button" (click)="stop()">
@@ -117,7 +117,6 @@
 	スクリーンショット
 -->
 <div class="screen-capture" *ngIf="showContent('ScreenCapture')">
-	<div><h3>ScreenShot</h3></div>
 	<div class="button-close" (click)="closeDashborde()">Close</div>
 	<ng-container *ngFor="let cap of getAllCapture(); index as i">
 	<div (click)="startCaptureEdit(i)" class="screen-list">
@@ -204,33 +203,30 @@
 		<div class="chat-send-button" (click)="sendChat()">send</div>
 	</div>
 	<div class="chat-item-bord">
-		<div class="chat-item-list">
-		<ng-container *ngFor="let img of getAllImage(); index as i">
-			<div class="chat-items">
-				<img src="{{img.data}}" width=60 />
-				<div>{{img.name}}</div>
-				<div
-					class="chat-item-download-button"
-					(click)="saveFile('image', i)">DL</div>
-			</div>
-		</ng-container>
-		<ng-container *ngFor="let item of getAllFile(); index as i">
-			<div class="chat-items">
-				<img src="assets/img/{{getIcon(item.type)}}.png" width=70 />
-				<div>{{item.name}}</div>
-				<div
-					class="chat-item-download-button"
-					(click)="saveFile('file', i)">DL</div>
-			</div>
-		</ng-container>
+	<ng-container *ngFor="let img of getAllImage(); index as i">
+		<div class="chat-items">
+			<img src="{{img.data}}" width=60 />
+			<div>{{img.name}}</div>
+			<div
+				class="chat-item-download-button"
+				(click)="saveFile('image', i)">DL</div>
 		</div>
+	</ng-container>
+	<ng-container *ngFor="let item of getAllFile(); index as i">
+		<div class="chat-items">
+			<img src="assets/img/{{getIcon(item.type)}}.png" width=70 />
+			<div>{{item.name}}</div>
+			<div
+				class="chat-item-download-button"
+				(click)="saveFile('file', i)">DL</div>
+		</div>
+	</ng-container>
 	</div>
 </div>
 <!--
 	ストーリーボード
 -->
 <div class="screen-story" *ngIf="showContent('ScreenStory')">
-	<div><h3>Story</h3></div>
 	<div class="button-close" (click)="closeDashborde()">Close</div>
 	<div class="story-borde">
 		<div class="story-capture">
