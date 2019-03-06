@@ -3,6 +3,7 @@
 WebSocket, WebRTCを使用したスクリーン共有
 
 提供機能
+
 - スクリーン共有（配信側はFirefoxのみ）
 - 音声共有
 - マウスカーソル共有
@@ -11,11 +12,11 @@ WebSocket, WebRTCを使用したスクリーン共有
 - スクリーンショット機能
 - スクリーン手書きメモ
 - スクリーン付箋メモ
+----
 
---
 
 ## サンプル
-
+----
 ■配信側アドレス
 https://yasukosan.dip.jp/vmeet/
 
@@ -28,10 +29,9 @@ https://yasukosan.dip.jp/vmeet/?room=生成されたROOM番号
 
 
 
-
-
+----
 ## Build（開発）
-
+----
 コードのダウンロード後に、プロジェクトフォルダ内で
 
 `npm update`
@@ -46,9 +46,9 @@ https://yasukosan.dip.jp/vmeet/?room=生成されたROOM番号
 クライアント「http://localhost:4200」
 サーバー    「http://localhost:3000」
 
-
-##　Build（公開）
-
+----
+## Build（公開）
+----
 - Apache、nginx等の静的コンテンツ配信
 - websocket用node.js
 - クライアント保持用mongodb
