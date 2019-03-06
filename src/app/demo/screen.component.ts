@@ -555,6 +555,9 @@ export class ScreenComponent implements OnInit {
         }
     }
 
+    /**
+     * クライアントを配信に参加させる
+     */
     public joinScreen(): Promise<boolean> {
         // Join an existing screen sharing session
         this.contentService.changeState('ScreenMenu', false);
@@ -610,14 +613,13 @@ export class ScreenComponent implements OnInit {
             console.log('Setup Websocket Client Mode');
             this.webrtcService.setVideoMode('listener');
 
-            // websocket受信待受
-            this.hub();
-            // websocket 接続開始
-            this.roomid = Number(this.roomname);
-            this.setupSocket();
-
             this.joinScreen()
                 .then((result) => {
+                    // websocket受信待受
+                    this.hub();
+                    // websocket 接続開始
+                    this.roomid = Number(this.roomname);
+                    this.setupSocket();
                     // スクリーンイベント登録
                     this.setMouseEvent();
                     // スクリーン表示準備
@@ -646,7 +648,6 @@ export class ScreenComponent implements OnInit {
      */
     private setScreeElement(): void {
         this.videoElement = document.getElementById('screenvideo');
-        console.log(this.videoElement);
         this.webrtcService.setContributorTarget(
             this.videoElement
         );
@@ -765,6 +766,7 @@ export class ScreenComponent implements OnInit {
             if (this.webrtcService.checkAuthConnection(result['id'])) {
                 this.webrtcService.makeOffer(result['id']);
                 if (mode === 'contributor') {
+                    console.log('Add Audio Element');
                     this.addAudioElement(result['id']);
                 }
             }

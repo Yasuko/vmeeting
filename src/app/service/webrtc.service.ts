@@ -108,6 +108,7 @@ export class WebRTCService {
           audio: mode.audio
         }).then((stream: MediaStream) => {
           // this.localStream = stream;
+          console.log('Set Local Stream');
           this.setStream('local', stream);
           resolve(true);
         }).catch((error) => {
@@ -273,7 +274,8 @@ export class WebRTCService {
       if (target === 'local') {
         this.LocalStream = stream;
       } else if (target === 'remote') {
-        this.RemoteStream = stream;
+        // 現在未使用
+        // this.RemoteStream = stream;
       }
     }
 
@@ -296,9 +298,8 @@ export class WebRTCService {
         videoTarget = this.RemoteVideoTarget[id];
         videoTarget.srcObject = this.RemoteStream[id];
       }
-
+      // ストリーム再生
       videoTarget.play();
-      // videoTarget.volume = 0;
     }
 
     /**
@@ -315,10 +316,13 @@ export class WebRTCService {
       }
       if ('ontrack' in peer) {
         peer.ontrack = (event) => {
-          // this.RemoteStream[id] = event.streams[0];
-          // this.playVideo('remote', id);
-          this.ContributeStream = event.streams[0];
-          this.playVideo('contributor');
+          if (this.checkMode(['listener'])) {
+            this.ContributeStream = event.streams[0];
+            this.playVideo('contributor');
+          } else {
+            this.RemoteStream[id] = event.streams[0];
+            this.playVideo('remote', id);
+          }
         };
       } else {
         if (this.checkMode(['listener'])) {
@@ -329,6 +333,7 @@ export class WebRTCService {
           };
         } else if (this.checkMode(['contributor'])) {
           peer.onaddstream = (event) => {
+            console.log('Start Remote Audio');
             this.RemoteStream[id] = event.streams[0];
             this.playVideo('remote', id);
           };
@@ -351,10 +356,10 @@ export class WebRTCService {
       };
 
       if (this.LocalStream) {
-        if (this.checkMode(['contributor'])) {
+        // if (this.checkMode(['contributor'])) {
           console.log('Add local stream');
           peer.addStream(this.LocalStream);
-        }
+        // }
       } else {
         console.warn('no local stream');
       }
@@ -538,7 +543,7 @@ export class WebRTCService {
      * @param sessionDescription ice情報を含めたSDP
      */
     private setIceCandidate(sessionDescription, id): void {
-      console.log(this.webRtcConnect[id]);
+      // console.log(this.webRtcConnect[id]);
       if (! this.webRtcConnect[id]) {
         console.error('PeerConnection not exist');
         return;
@@ -579,7 +584,7 @@ export class WebRTCService {
         console.log(this.videoMode);
         options = {
           mandatory: {
-            'OfferToReceiveAudio': false,
+            'OfferToReceiveAudio': true,
             'OfferToReceiveVideo': false
           }
         };
