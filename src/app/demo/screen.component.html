@@ -1,4 +1,12 @@
 <div class="">
+	<div id="audioBox">
+		<audio id="audio0" autoplay playsinline></audio>
+		<audio id="audio1" autoplay playsinline></audio>
+		<audio id="audio2" autoplay playsinline></audio>
+		<audio id="audio3" autoplay playsinline></audio>
+		<audio id="audio4" autoplay playsinline></audio>
+		<audio id="audio5" autoplay playsinline></audio>
+	</div>
 	<div class="page-center" *ngIf="showContent('CenterScreen')">
 		<div class="page-center-block" *ngIf="showContent('ScreenStart')">
 			<div class="title-s3">
@@ -32,16 +40,9 @@
 			<div class="list-block-s2">
 				<div class="button-m" (click)="setShareMode('screen')">画面を共有</div>
 				<div class="button-m" (click)="setShareMode('window')">アプリを共有</div>
+				<div class="button-m" (click)="setShareMode('application')">アプリを共有?</div>
 			</div>
 		</div>
-	</div>
-	<div>
-		<audio id="audio0" autoplay playsinline></audio>
-		<audio id="audio1" autoplay playsinline></audio>
-		<audio id="audio2" autoplay playsinline></audio>
-		<audio id="audio3" autoplay playsinline></audio>
-		<audio id="audio4" autoplay playsinline></audio>
-		<audio id="audio5" autoplay playsinline></audio>
 	</div>
 	<div class="page-header" *ngIf="showContent('HeaderScreen')">
 		<div class="exit-button" (click)="stop()">

@@ -1,0 +1,27 @@
+@startuml
+
+title 配信準備ボタンを押したときの処理
+start
+:ローカルの映像準備開始
+videoSetup();
+
+:取得した映像ソースを表示するタグを取得
+setVideoElement();
+
+:映像ソース取得
+nabigator.mediaDevices.getUserMedia(
+video: true, audio: false
+);
+
+if (映像ソース取得成功) then (True)
+    :映像ソース取得後
+    webrtcモジュールにストリームを渡す
+    webrtcService.setStream('local', stream);
+
+else (False)
+    :エラーメッセージ表示;
+    end
+endif
+
+end
+@enduml

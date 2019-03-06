@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-declare var adapter: any;
-declare var Janus: any;
-import { SubjectsService, ImageService } from '../service';
-import { WebSocketService, MouseService } from '../service';
+
+import {
+    SubjectsService, ImageService,
+    WebSocketService, MouseService,
+    WebRTCService
+} from '../service';
 import {
     UserService, ContentService, TextService,
     StoryService, FileService
@@ -24,10 +26,12 @@ export class ScreenComponent implements OnInit {
     private URL = 'http://happypazdra.dip.jp:8088/janus';
     private URLS = 'https://happypazdra.dip.jp:8089/janus';
 
-    private server = null;
-    private janus = null;
     private screen = null;
-    private opaqueId = '';
+    private server = null;
+    private videoElement = null;
+    private remoteElement = [];
+
+    private audioBox = document.getElementById('audioBox');
 
     public onStart = false;
     public onwebrtcUp = false;
@@ -35,8 +39,6 @@ export class ScreenComponent implements OnInit {
     public capture = '';
     public desc = '';
     public myusername = '';
-    public myid = '';
-    public mypvtid = '';
     public feeds = [];
     public roomid: Number = 0;
     public room: Number = 0;
@@ -89,15 +91,17 @@ export class ScreenComponent implements OnInit {
     };
 
     public roomname = '';
-    public mode = 'master';
+    public mode = 'contributor';
 
     public showBitrate = 0;
     constructor(
         // private janusService: Janus,
+        private renderer2: Renderer2,
         private router: ActivatedRoute,
         private subjectService: SubjectsService,
         private imageService: ImageService,
         private websocketService: WebSocketService,
+        private webrtcService: WebRTCService,
         private mouseService: MouseService,
         private userService: UserService,
         private contentService: ContentService,
@@ -135,9 +139,13 @@ export class ScreenComponent implements OnInit {
                 }
             );
         });
+        this.subjectService.on('on_webrtc')
+        .subscribe((msg: any) => {
+            this.webrtcManager(msg);
+        });
         this.subjectService.on('on_' + this.roomname)
             .subscribe((msg: any) => {
-                if (this.mode === 'master' && msg['msg'] === 'new_client') {
+                if (this.mode === 'contributor' && msg['msg'] === 'new_client') {
                     this.websocketService.send(
                         this.roomname,
                         {
@@ -154,7 +162,6 @@ export class ScreenComponent implements OnInit {
     private socketHub(msg: any): void {
         if (msg['msg'] === 'connectionid') {
             if (this.roomid === 0) {
-                console.log(msg);
                 this.roomid = msg['data'];
             }
         } else if (msg['msg'] === 'text') {
@@ -165,6 +172,8 @@ export class ScreenComponent implements OnInit {
             // console.log(msg);
         } else if (msg['msg'] === 'file_send') {
             this.fileService.addRemoteFile(msg['data']);
+        } else if (msg['msg'] === 'webrtc') {
+            this.webrtcManager(msg);
         }
     }
 
@@ -174,7 +183,7 @@ export class ScreenComponent implements OnInit {
             console.log(room);
             this.roomname = room['room'];
             // ゲスト接続の場合にroomname要求
-            this.mode = 'client';
+            this.mode = 'listener';
         }
     }
 
@@ -413,150 +422,6 @@ export class ScreenComponent implements OnInit {
     }
 
     /**
-     *
-     * Janus
-     *
-     */
-
-    private initial(): void {
-        console.log(window.location.protocol);
-        if (window.location.protocol === 'http:') {
-            this.server = this.URL;
-        } else if (window.location.protocol === 'https:') {
-            this.server = this.URLS;
-        }
-
-        this.opaqueId = 'screensharingtest-' + Janus.randomString(12);
-    }
-
-     public start(): void {
-        this.onStart = true;
-        // Make sure the browser supports WebRTC
-        if (!Janus.isWebrtcSupported()) {
-            this.subjectService.publish('alert', 'No WebRTC support... ');
-            return;
-        }
-        // this.initial();
-        this.userColor = this.userService.getColor();
-        this.setup();
-    }
-
-    public stop(): void {
-        this.onStart = false;
-        this.janus.destroy();
-    }
-
-    public setShareMode(mode: string): void {
-        if (mode === 'screen') {
-            this.capture = mode;
-        } else if (mode === 'window') {
-            this.capture = mode;
-        }
-        this.shareScreen();
-    }
-
-    public randomString(len, charSet = null): string {
-        charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let randomString = '';
-        for (let i = 0; i < len; i++) {
-            const randomPoz = Math.floor(Math.random() * charSet.length);
-            randomString += charSet.substring(randomPoz, randomPoz + 1);
-        }
-        return randomString;
-    }
-    public randomNumber(len, charSet = null): number {
-        charSet = charSet || '0123456789';
-        let randomString = '';
-        for (let i = 0; i < len; i++) {
-            const randomPoz = Math.floor(Math.random() * charSet.length);
-            randomString += charSet.substring(randomPoz, randomPoz + 1);
-        }
-        return Number(randomString);
-    }
-    public checkEnterShare(event): boolean {
-        const theCode = event.charCode;
-        if (theCode === 13) {
-            this.preShareScreen();
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    public preShareScreen(): void {
-        if (!Janus.isExtensionEnabled()) {
-            // before bootbox alert
-            console.log(
-        'You`re using Chrome but don`t have the screensharing extension installed: click <b>', () => {
-                window.location.reload();
-            });
-            return;
-        }
-        // Create a new room
-        this.contentService.changeState('ScreenMenu', false);
-        if (this.desc === '') {
-            // before bootbox alert
-            console.log('Please insert a description for the room');
-            this.contentService.screenReset();
-            return;
-        }
-        this.capture = 'screen';
-        if (typeof(navigator['mozGetUserMedia']) === 'function') {
-            this.contentService.changeState('ScreenSelect', true);
-            // Firefox needs a different constraint for screen and window sharing
-        } else {
-            this.shareScreen();
-        }
-    }
-
-    public shareScreen(): void {
-        // Create a new room
-        const desc = this.desc;
-        this.role = 'publisher';
-/*
-        const create = { 'request': 'create', 'description': desc, 'bitrate': 500000 };
-        this.screen.send({'message': create, success: (result) => {
-            const event = result['videoroom'];
-            Janus.debug('Event: ' + event);
-            if (event !== undefined && event != null) {
-                // Our own screen sharing session has been created, join it
-                this.room = result['room'];
-                this.roomname = String(this.room);
-                Janus.log('Screen sharing session created: ' + this.room);
-                this.myusername = this.randomString(12);
-                const register = {
-                    'request': 'join',
-                    'room': Number(this.room),
-                    'ptype': 'publisher',
-                    'display': this.myusername
-                };
-                this.screen.send({'message': register});
-            }
-        }});
-*/
-        this.room = 1234;
-        this.roomname = String(this.room);
-        Janus.log('Screen sharing session created: ' + this.room);
-        this.myusername = this.randomString(12);
-        const register = {
-            'request': 'join',
-            'room': Number(this.room),
-            'ptype': 'publisher',
-            'display': this.myusername
-        };
-        this.screen.send({'message': register});
-    }
-    public checkEnterJoin(event): boolean {
-        const theCode = event.charCode;
-        if (theCode === 13) {
-            this.joinScreen();
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    /**
      * 画面キャプチャ
      */
     public setCaptureTarget(): void {
@@ -636,402 +501,343 @@ export class ScreenComponent implements OnInit {
         this.editCaptureTarget = null;
     }
 
-    public joinScreen(): void {
+    /**
+     *
+     * Janus
+     *
+     */
+
+
+    /**
+     * 画面共有モードの設定
+     * @param mode 画面共有モード
+     */
+    public setShareMode(mode: string): void {
+        if (mode === 'screen') {
+            this.capture = mode;
+        } else if (mode === 'window') {
+            this.capture = mode;
+        } else if (mode === 'application') {
+            this.capture = mode;
+        }
+        this.setup();
+    }
+
+    public checkEnterShare(event): boolean {
+        const theCode = event.charCode;
+        if (theCode === 13) {
+            this.preShareScreen();
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public preShareScreen(): void {
+        // Create a new room
+        this.contentService.changeState('ScreenMenu', false);
+        if (this.desc === '') {
+            // before bootbox alert
+            console.log('Please insert a description for the room');
+            this.contentService.screenReset();
+            return;
+        }
+        this.title = this.desc;
+
+        // this.capture = 'screen';
+
+        // ブラウザがgetUserMediaに対応しているか判定
+        if (this.webrtcService.checkScreenShare()) {
+            this.contentService.changeState('ScreenSelect', true);
+            // Firefox needs a different constraint for screen and window sharing
+        } else {
+            alert('Not Support');
+        }
+    }
+
+    public joinScreen(): Promise<boolean> {
         // Join an existing screen sharing session
         this.contentService.changeState('ScreenMenu', false);
-        const roomid = this.roomid;
-        if (isNaN(Number(roomid))) {
+        if (isNaN(Number(this.roomid))) {
             // before bootbox alert
             console.log('Session identifiers are numeric only');
             this.contentService.changeState('ScreenStart', false);
             this.contentService.changeState('ScreenMenu', true);
             return;
         }
-        this.room = roomid;
-        // this.role = 'listener';
-        this.role = 'publisher';
-        // this.myusername = this.randomString(12);
-        const register = {
-            request: 'join',
-            room: Number(this.room),
-            ptype: 'publisher',
-            display: this.name
-        };
-
+        this.room = this.roomid;
         this.myusername = this.name;
-        console.log(register);
-        this.screen.send({'message': register});
 
+        if (this.mode === 'listener') {
+            return new Promise((resolve) => {
+                this.webrtcService.getLocalStream(false, true)
+                .then((result) => {
+                    resolve(result);
+                });
+            });
+        }
     }
 
     public videoPlaying(): void {
         this.contentService.showVideoPlay();
     }
-    private publishOwnFeed(useVideo) {
-        // Publish our stream
-        let _media = {};
-        if (useVideo) {
-            _media = { audioRecv: false, videoRecv: false, audioSend: true, videoSend: useVideo, video: this.capture };
-        } else {
-            _media = { audioRecv: false, videoRecv: false, audioSend: true, videoSend: useVideo};
+
+
+    /**
+     * httpとhttpsに応じてサーバー接続先切り替え
+     */
+    private initial(): void {
+        console.log(window.location.protocol);
+        if (window.location.protocol === 'http:') {
+            this.server = this.URL;
+        } else if (window.location.protocol === 'https:') {
+            this.server = this.URLS;
         }
-        this.screen.createOffer(
-            {
-                media: _media,
-                // simulcast: doSimulcast,
-                success: (jsep) => {
-                    Janus.debug('Got publisher SDP!');
-                    Janus.debug(jsep);
-                    const publish = { 'request': 'configure', 'audio': true, 'video': useVideo };
-                    this.screen.send({'message': publish, 'jsep': jsep});
-                },
-                error: (error) => {
-                    Janus.error('WebRTC error:', error);
-                    if (useVideo) {
-                         this.publishOwnFeed(false);
-                    } else {
-                        console.log('WebRTC error... ' + JSON.stringify(error));
-                    }
-                }
-            });
+        this.audioBox = document.getElementById('audioBox');
     }
-    public newRemoteFeed(id, display, audio, video): void {
-        // A new feed has been published, create a new plugin handle and attach to it as a listener
-        this.source = id;
-        let remoteFeed = null;
-        this.janus.attach(
-            {
-                plugin: 'janus.plugin.videoroom',
-                opaqueId: this.opaqueId,
-                success: (pluginHandle) => {
-                    remoteFeed = pluginHandle;
-                    Janus.log(
-                        'Plugin attached! (' +
-                        remoteFeed.getPlugin() + ', id=' + remoteFeed.getId() + ')'
-                    );
-                    Janus.log('  -- This is a subscriber');
-                    // We wait for the plugin to send us an offer
-                    // const listen = { 'request': 'join', 'room': Number(this.room), 'ptype': 'listener', 'feed': id };
-                    const listen = {
-                        'request': 'join', 'room': Number(this.room),
-                        'ptype': 'subscriber', 'feed': id, 'private_id': this.mypvtid
-                    };
-                    remoteFeed.send({'message': listen});
-                },
-                error: (error) => {
-                    Janus.error('  -- Error attaching plugin...', error);
-                    // before bootbox alert
-                    console.log('Error attaching plugin... ' + error);
-                },
-                onmessage: (msg, jsep) => {
-                    Janus.debug(' ::: Got a message (listener) :::');
-                    Janus.debug(msg);
-                    const event = msg['videoroom'];
-                    Janus.debug('Event: ' + event);
-                    if (event !== undefined && event !== null) {
-                        if (event === 'attached') {
-                            for (let i = 1 ; i < 6 ; i++) {
-                                if (this.feeds[i] === undefined || this.feeds[i] === null) {
-                                    this.feeds[i] = remoteFeed;
-                                    remoteFeed.rfindex = i;
-                                    break;
-                                }
-                            }
-                            remoteFeed.rfid = msg['id'];
-                            remoteFeed.rfdisplay = msg['display'];
-                            console.log(
-                                'Successfully attached to feed ' + id +
-                                ' (' + display + ') in room ' + msg['room']);
-                            this.contentService.changeState('ScreenMenu', false);
-                            this.contentService.changeState('Room', true);
-                        }
-                    }
-                    if (jsep !== undefined && jsep !== null) {
-                        Janus.debug('Handling SDP as well...');
-                        Janus.debug(jsep);
-                        // Answer and attach
-                        remoteFeed.createAnswer(
-                            {
-                                jsep: jsep,
-                                media: { audioSend: false, videoSend: false },
-                                success: (_jsep) => {
-                                    Janus.debug('Got SDP!');
-                                    console.log(_jsep);
-                                    const body = { 'request': 'start', 'room': Number(this.room) };
-                                    remoteFeed.send({'message': body, 'jsep': _jsep});
-                                },
-                                error: (error) => {
-                                    Janus.error('WebRTC error:', error);
-                                    // before bootbox alert
-                                    console.log('WebRTC error... ' + error);
-                                }
-                            }
-                        );
-                    }
-                },
-                onlocalstream: (stream) => {
-                    // The subscriber stream is recvonly, we don't expect anything here
-                },
-                onremotestream: (stream) => {
-                    console.log(stream);
-                    console.log(remoteFeed);
-                    const videoTrack = stream.getVideoTracks();
-                    if (videoTrack === null || videoTrack === undefined || videoTrack.length === 0) {
-                        console.log('Attach Remote Audio Stream');
-                        Janus.attachMediaStream(
-                            document.getElementById('audio' + remoteFeed.rfindex),
-                            // document.getElementById('audio0'),
-                            stream
-                        );
-                    } else {
-                        console.log('Attach Remote Video Stream');
-                        this.setCaptureTarget();
-                        this.contentService.showRemoteStream();
-                        if (this.contentService.checkShow('ScreenVideo') === false) {
-                            this.contentService.changeState('Room', true);
-                        }
-                        Janus.attachMediaStream(
-                            document.getElementById('screenvideo'),
-                            stream
-                        );
-                        // スクリーンイベント登録
-                        this.setMouseEvent();
-                    }
-                },
-                oncleanup: () => {
-                    Janus.log(' ::: Got a cleanup notification (remote feed ' + id + ') :::');
-                    this.contentService.changeState('WaitingVideo', false);
-                }
-            });
+
+    /**
+     * スタート処理
+     */
+    public start(): void {
+        this.onStart = true;
+        this.userColor = this.userService.getColor();
+        this.contentService.showStartSequence();
+
+        if (this.mode === 'listener') {
+            // ローカルストリーム表示
+            this.contentService.showListenerSequence();
+            console.log('Setup Websocket Client Mode');
+            this.webrtcService.setVideoMode('listener');
+
+            // websocket受信待受
+            this.hub();
+            // websocket 接続開始
+            this.roomid = Number(this.roomname);
+            this.setupSocket();
+
+            this.joinScreen()
+                .then((result) => {
+                    // スクリーンイベント登録
+                    this.setMouseEvent();
+                    // スクリーン表示準備
+                    this.setScreeElement();
+                    this.getConnectionCode();
+                    this.startStream();
+                });
+
+        } else if (this.mode === 'contributor') {
+            this.webrtcService.setVideoMode('contributor');
+            this.room = this.webrtcService.getRandomNumber(8);
+            this.roomid = this.room;
+            this.roomname = String(this.roomid);
+        }
     }
-    private setup(): void {
-        // Initialize the library (all console debuggers enabled)
-        Janus.init({debug: 'all', callback: () => {
-            this.janus = new Janus({
-                server: this.server,
-                success: () => {
-                    this.janus.attach(
-                        {
-                            plugin: 'janus.plugin.videoroom',
-                            opaqueId: this.opaqueId,
-                            success: (pluginHandle) => {
-                                this.screen = pluginHandle;
-                                Janus.log('Plugin attached! (' +
-                                    this.screen.getPlugin() + ', id=' + this.screen.getId() + ')');
-                                this.contentService.showStartSequence();
 
-                                // クライアントの場合ノード接続開始
-                                if (this.mode === 'client') {
-                                    console.log('Setup Websocket Client Mode');
-                                    // websocket受信待受
-                                    this.hub();
-                                    // websocket 接続開始
-                                    this.roomid = Number(this.roomname);
-                                    this.setupSocket();
-                                    this.joinScreen();
-                                    this.getConnectionCode();
-                                }
-                            },
-                            error: (error) => {
-                                console.error('  -- Error attaching plugin...', error);
-                                console.log('Error attaching plugin... ' + error);
-                                // this.subjectService.publish('alert', 'Error attaching plugin... ' + error);
-                            },
-                            consentDialog: (on) => {
-                                Janus.debug('Consent dialog should be ' + (on ? 'on' : 'off') + ' now');
-                                if (on) {
-                                } else {
-                                }
-                            },
-                            webrtcState: (on) => {
-                                Janus.log('Janus says our WebRTC PeerConnection is ' + (on ? 'up' : 'down') + ' now');
-                                if (on) {
-                                    console.log(
-                                        'Your screen sharing session just started: pass the ' +
-                                        '<b>' + this.room + '</b> session identifier to those who want to attend.');
-                                } else {
-                                    console.log('Your screen sharing session just stopped.', () => {
-                                        this.janus.destroy();
-                                        window.location.reload();
-                                    });
-                                }
-                            },
-                            onmessage: (msg, jsep) => {
-                                Janus.debug(' ::: Got a message :::');
-                                Janus.debug(msg);
-                                const event = msg['videoroom'];
-                                Janus.debug('Event: ' + event);
-                                if (event !== undefined && event !== null) {
-                                    if (event === 'joined') {
-                                        this.myid = msg['id'];
-                                        this.mypvtid = msg['private_id'];
-                                        this.title = msg['description'];
-                                        console.log(
-                                            'Successfully joined room ' + msg['room'] +
-                                            ' with ID ' + this.myid);
-                                        if (this.mode === 'master') {
-                                            Janus.debug('Negotiating WebRTC stream for our screen (capture ' + this.capture + ')');
-                                            this.publishOwnFeed(true);
-                                        } else {
-                                            // Publish our stream
-                                            console.log('Send Audio OFFER');
-                                            this.publishOwnFeed(false);
+    public stop(): void {
+        this.onStart = false;
+    }
 
-                                            // We're just watching a session, any feed to attach to?
-                                            if (msg['publishers'] !== undefined && msg['publishers'] !== null) {
-                                                const list = msg['publishers'];
-                                                Janus.debug('Got a list of available publishers/feeds:');
-                                                Janus.debug(list);
-                                                for (const f in list) {
-                                                    if (list.hasOwnProperty(f)) {
-                                                        const id = list[f]['id'];
-                                                        const display = list[f]['display'];
-                                                        const audio = list[f]['audio_codec'];
-                                                        const video = list[f]['video_codec'];
-                                                        Janus.debug('  >> [' + id + '] ' + display);
-                                                        this.newRemoteFeed(id, display, audio, video);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else if (event === 'destroyed') {
-                                        // befor bootbox
-                                        console.log('The room has been destroyed', () => {
-                                            window.location.reload();
-                                        });
-                                    } else if (event === 'event') {
-                                        // Any feed to attach to?
-                                        if (msg['publishers'] !== undefined
-                                            && msg['publishers'] !== null) {
-                                            const list = msg['publishers'];
-                                            Janus.debug('Got a list of available publishers/feeds:');
-                                            Janus.debug(list);
-                                            for (const f in list) {
-                                                if (list.hasOwnProperty(f)) {
-                                                    const id = list[f]['id'];
-                                                    const display = list[f]['display'];
-                                                    const audio = list[f]['audio_codec'];
-                                                    const video = list[f]['video_codec'];
-                                                    Janus.debug('  >> [' + id + '] ' + display);
-                                                    this.newRemoteFeed(id, display, audio, video);
-                                                }
-                                            }
-                                        } else if (msg['leaving'] !== undefined && msg['leaving'] !== null) {
-                                            // One of the publishers has gone away?
-                                            const leaving = msg['leaving'];
-                                            Janus.log('Publisher left: ' + leaving);
-                                            let remoteFeed = null;
-                                            for (let i = 0; i < 5; i++) {
-                                                if (this.feeds[i] !== undefined
-                                                    && this.feeds[i] !== undefined
-                                                    && this.feeds[i].rfid === leaving) {
-                                                    remoteFeed = this.feeds[i];
-                                                    break;
-                                                }
-                                            }
-                                            if (remoteFeed !== null) {
-                                                this.feeds[remoteFeed.rfindex] = null;
-                                                remoteFeed.detach();
-                                            }
-                                            if (this.mode === 'client' && msg['leaving'] === this.source) {
-                                                // before bootbox alert
-                                                console.log(
-                                                    'The screen sharing session is over, the publisher left',
-                                                    () => {
-                                                    window.location.reload();
-                                                });
-                                            }
-                                        } else if (msg['unpublished'] !== undefined && msg['unpublished'] !== null) {
-                                            // One of the publishers has unpublished?
-                                            const unpublished = msg['unpublished'];
-                                            Janus.log('Publisher left: ' + unpublished);
-                                            if (unpublished === 'ok') {
-                                                // That's us
-                                                this.screen.hangup();
-                                                return;
-                                            }
-                                            let remoteFeed = null;
-                                            for (let i = 1; i < 6; i++) {
-                                                if (this.feeds[i] !== null
-                                                    && this.feeds[i] !== undefined
-                                                    && this.feeds[i].rfid === unpublished) {
-                                                    remoteFeed = this.feeds[i];
-                                                    break;
-                                                }
-                                            }
-                                            if (remoteFeed != null) {
-                                                this.feeds[remoteFeed.rfindex] = null;
-                                                remoteFeed.detach();
-                                            }
-                                        } else if (msg['error'] !== undefined && msg['error'] !== null) {
-                                            // before bootbox alert
-                                            console.log(msg['error']);
-                                        }
-                                    }
-                                }
-                                if (jsep !== undefined && jsep !== null) {
-                                    Janus.debug('Handling SDP as well...');
-                                    Janus.debug(jsep);
-                                    this.screen.handleRemoteJsep({jsep: jsep});
-                                }
-                            },
 
-                            onlocalstream: (stream) => {
-                                if (this.mode === 'master') {
-                                    Janus.debug(' ::: Got a local stream :::');
-                                    Janus.debug(stream);
+    /**
+     *
+     * WebRTCヒデオ送信
+     *
+     */
+    private setScreeElement(): void {
+        this.videoElement = document.getElementById('screenvideo');
+        console.log(this.videoElement);
+        this.webrtcService.setContributorTarget(
+            this.videoElement
+        );
+    }
+    private setVideoElement(): void {
+        this.videoElement = document.getElementById('screenvideo');
+        this.webrtcService.setVideoTarget(
+            this.videoElement
+        );
+    }
 
-                                    this.setCaptureTarget();
-                                    this.contentService.showLocalStream();
+    public videoSetup(): Promise<boolean> {
+        this.setVideoElement();
+        return new Promise((resolve, reject) => {
+            this.webrtcService.getLocalStream(this.capture, true)
+                .then((result) => {
+                    resolve(result);
+                });
+        });
+    }
+    /**
+     * ストリーム開始
+     */
+    public setup(): void {
+        this.videoSetup().then((result) => {
+            if (result) {
+                // ローカルストリーム表示
+                this.contentService.showLocalStream();
 
-                                    // websocket受信待受
-                                    console.log('Setup Websocket Master Mode');
-                                    this.hub();
-                                    // websocket接続開始
-                                    this.setupSocket();
-                                    // スクリーンイベント登録
-                                    this.setMouseEvent();
+                // 画面キャプチャセットアップ
+                this.setCaptureTarget();
 
-                                    if (this.contentService.checkShow('ScreenVideo') === false) {
-                                        this.myvideoState.muted = 'muted';
-                                        this.contentService.changeState('ScreenVideo', true);
-                                    }
+                // webソケットイベント受信設定開始
+                this.hub();
+                // websocket接続開始
+                this.setupSocket();
+                // スクリーンイベント登録
+                this.setMouseEvent();
 
-                                    const video: any = document.getElementById('screenvideo');
-                                    video.muted = false;
-                                    Janus.attachMediaStream(
-                                        video,
-                                        stream
-                                    );
-                                    if (this.screen.webrtcStuff.pc.iceConnectionState !== 'completed'
-                                        && this.screen.webrtcStuff.pc.iceConnectionState !== 'connected') {
-
-                                        this.contentService.changeState('ScreenBlock', true);
-                                    }
-                                }
-
-                            },
-                            onremotestream: (stream) => {
-                                console.log(stream);
-
-                            },
-                            oncleanup: () => {
-                                Janus.log(' ::: Got a cleanup notification :::');
-                                console.log('load', 'hide');
-                                this.AllReset();
-                            }
-                        });
-                },
-                error: (error) => {
-                    Janus.error(error);
-                    window.location.reload();
-                },
-                destroyed: () => {
-                    window.location.reload();
+                if (this.contentService.checkShow('ScreenVideo') === false) {
+                    this.myvideoState.muted = 'muted';
+                    this.contentService.changeState('ScreenVideo', true);
                 }
-            });
-    }});
+                const video: any = document.getElementById('screenvideo');
+                video.muted = true;
+                this.webrtcService.playVideo('local');
+            }
+        });
+    }
 
+    /**
+     * ストリームを止める
+     */
+    public shutdown(): void {
+        this.videoElement.pause();
+        if (this.videoElement.src && (this.videoElement.src !== '') ) {
+            window.URL.revokeObjectURL(this.videoElement.src);
+        }
+        this.videoElement.src = '';
+    }
+
+    /**
+     * WebRTC通信開始
+     */
+    public startStream(): void {
+        console.log('Start Stream for ' + this.mode);
+        this.websocketService.send(
+            this.roomname,
+            {
+                'msg': 'webrtc',
+                'job': 'request_offer'
+            }
+        );
+    }
+
+    /**
+     * WebRTC通信止める
+     */
+    public stopStream(): void {
+        this.webrtcService.hungUp();
+    }
+
+    private webrtcManager(result): void {
+        const mode = this.webrtcService.getVideoMode();
+        if (result['job'] === 'send_sdp') {
+            this.websocketService.send(
+            this.roomname,
+            {
+                'msg': 'webrtc',
+                'job': 'remote_sdp',
+                'data': result['data'],
+                'to': result['id'],
+                'mode': this.mode
+            });
+        } else if (result['job'] === 'remote_sdp') {
+            const data = JSON.parse(result['data']);
+            if ('id' in result) {
+                if (this.webrtcService.checkAuthConnection(result['id']) === true
+                    && this.webrtcService.checkMode(['listener'])
+                ) {
+                    if (result['mode'] === 'contributor') {
+                        console.log('Screen On');
+                        this.addScreenElement(result['id']);
+                    } else {
+                        this.addAudioElement(result['id']);
+                    }
+                }
+            }
+            this.webrtcService.onSdpText(data, result['id']);
+        } else if (
+            result['job'] === 'request_offer'
+            && this.webrtcService.checkMode(['contributor'])) {
+
+            console.log('get offer request');
+            console.log(result);
+            if (this.webrtcService.checkAuthConnection(result['id'])) {
+                this.webrtcService.makeOffer(result['id']);
+                if (mode === 'contributor') {
+                    this.addAudioElement(result['id']);
+                }
+            }
+        }
+    }
+
+    private addScreenElement(id): void {
+        this.webrtcService.setContributorTarget(this.videoElement);
+    }
+    private addAudioElement(id): void {
+        if (!this.remoteElement[id]) {
+            const video = this.addRemoteVideoElement(id);
+            this.webrtcService.setRemoteVideoTarget(video, id);
+        }
+    }
+    private addRemoteVideoElement(id): void {
+        const video = this.createVideoElement('remote_video_' + id);
+        this.remoteElement[id] = video;
+        return this.remoteElement[id];
+    }
+
+    private deleteRemoteVideoElement(id, type = 'id'): void {
+        if (type === 'id') {
+            this.removeVideoElement('remote_video_' + id);
+            delete this.remoteElement[id];
+        } else if (type === 'all') {
+            for (const key in this.remoteElement) {
+                if (this.remoteElement.hasOwnProperty(key)) {
+                    this.removeVideoElement('remote_video_' + key);
+                    delete this.remoteElement[key];
+                }
+            }
+        }
+    }
+
+    private createVideoElement(id): any {
+        const audio = this.renderer2.createElement('audio');
+        audio.id = id;
+        audio.setAttribute('class', 'hideon');
+
+        this.audioBox.appendChild(audio);
+        return audio;
+    }
+
+    private removeVideoElement(id): any {
+        const audio = document.getElementById(id);
+        this.audioBox.removeChild(audio);
+        return audio;
+    }
+
+
+    /**
+     * 録画再生
+     */
+
+    public start_recorde(id): void {
+        const hideo = document.getElementById(id);
+        this.webrtcService.setRecordePlayer(hideo);
+        this.webrtcService.startRecord();
+    }
+
+    public stop_recorde(): void {
+        this.webrtcService.stopRecord();
+    }
+
+    public play_recorde(): void {
+        this.webrtcService.plyaRecord();
+    }
+
+    public dl_recorde(id): void {
+        const dl: any = document.getElementById(id);
+        dl.download = 'hideo.webm';
+        dl.href = this.webrtcService.getRecordeURL();
     }
 
     private AllReset(): void {
@@ -1042,7 +848,6 @@ export class ScreenComponent implements OnInit {
         this.capture = '';
         this.desc = '';
         this.myusername = '';
-        this.myid = '';
         this.roomid = 0;
         this.room = 0;
         this.role = '';

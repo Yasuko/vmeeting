@@ -1,0 +1,141 @@
+@startuml
+
+title 配信開始ボタンを押したときの処理
+start
+:websocket経由で全てのクライアントに
+オファーを要求
+websocketService.send('webrtc',
+{'job': 'request_offer'});
+
+:websocket経由で受け取った要求を処理
+webrtcManager();
+
+:配信モード取得
+mutual:相互通信
+delivery:配信のみ
+reception:受信のみ
+webrtcService.getVideoMode();
+
+if (send_sdpを受け取った場合) then (True)
+    :websocket経由でSDPを全てのクライアントに渡す
+    "webrtc",
+    {
+        "job": "remote_sdp",
+        "data": result["data"],
+        "to": result["id"],
+    };
+    end
+
+else if (remote_sdpを受け取った場合)
+    :SDP送信者が既に登録済み
+    もしくは接続条件に達していないか確認
+    webrtcService.checkAythConnection;
+
+    if (チェックOK) then (True)
+        :ビデオ再生用のDOM追加;
+    endif
+
+    :SDP情報の登録
+    webrtcService.onSdpText(data, result["id"]);
+
+    :SDPのタイプを判定;
+
+    if (「offer」オファー要求) then (True)
+        :SDPから不要なコーデック情報を削除
+        再パッケージする;
+
+        :WebRTCメソッドをSDPを引数に作成
+        RTCSessionDescription(sdp)
+        ※フォーラムにもこの処理が必要なのか議論になっている;
+
+        package setOffer {
+            :SDP接続を保存
+            setOffer(offer, id);
+        }
+
+        partition initPearConnection {
+            :PeerConnectionの新規作成
+            new RTCPeerConnection(dataoption);
+
+            if (ontrack がpeerの中に含まれるか) then (True)
+                :ストリーム受け取りイベント時に
+                ストリームを再生するように登録
+                
+                "RemoteStream[id] = event.streams[0]"
+                "playVideo(remote, id)";
+            else (含まない)
+                if (動作モードが「視聴者」) then (True)
+                    :配信者のストリーム受け取りイベント時に
+                    ストリームを再生するように登録
+                    
+                    "DeliveryStream = event.stream"
+                    "playVideo(delivery, id)";
+                else if (動作モードが「相互通信」) then (True)
+                    :配信者のストリーム受け取りイベント時に
+                    ストリームを再生するように登録
+                    
+                    "RemoteStream[id] = event.streams[0]"
+                    "playVideo(remote, id)";
+                endif
+            endif
+
+            :icecandy受け取りイベントを登録
+            peer.onicecandidate();
+            if (iceイベントがあるか)  then (True)
+                :iceを作成しwebsocketで投げる
+                "const data = {"
+                "    type: 'candidate',"
+                "    data: candidate"
+                "};"
+                "this.publish(id, data, 'candidate')";
+            endif
+
+            :ice情報の変更イベントを登録
+            peer.oniceconnectionsstatechange();
+            if (disconnected 切断イベントか) then (True)
+                :webrtc接続終了処理
+                "this.webRtcConnect.close();"
+                "this.webRtcConnect = null";
+            endif
+
+            :ローカルストリームチェック;
+            if (ローカルストリームがあるか) then (True) 
+                :Peerコネクションにローカルストリームを追加
+                "peer.addStream(LocalStream)";
+            endif
+            
+        }
+
+        :オファー要求の作成
+        setOffer(offer, id);
+    else if (「answer」アンサー要求) then (True)
+        :WebRTCメソッドの作成
+        RTCSessionDescription(sdp);
+
+        :オファー要求の作成
+        setOffer(offer, id);
+    else if (「candidate」アイスー要求) then (True)
+        :WebRTCメソッドの作成
+        RTCSessionDescription(sdp);
+
+        :オファー要求の作成
+        setOffer(offer, id);
+    endif
+
+
+else if (request_offerを受け取った場合)
+    :SDP送信者が既に登録済み
+    もしくは接続条件に達していないか確認
+    webrtcService.checkAythConnection;
+
+    if (チェックOK) then (True)
+        :ビデオ再生用のDOM追加;
+    endif
+    end
+
+else (どれにも一致しない)
+    end
+endif
+
+end
+@enduml

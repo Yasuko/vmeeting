@@ -75,7 +75,12 @@ export class ContentService {
         this.show['JoinNow'] = true;
         this.show['Room'] = true;
     }
-
+    public showListenerSequence(): void {
+        this.show['ScreenStart'] = false;
+        this.show['CenterScreen'] = false;
+        this.show['HeaderScreen'] = true;
+        this.show['Room'] = true;
+    }
     public showLocalStream(): void {
         this.show['CenterScreen'] = false;
         this.show['HeaderScreen'] = true;

@@ -10,20 +10,23 @@ export class WebRTCService {
 
     private LocalVideoTarget: any;
     private RemoteVideoTarget: any = {};
+    private ContributeVideoTarget: any = null;
 
     private LocalStream: any = null;
     private RemoteStream: any = {};
+    private ContributeStream: any = null;
 
     private webRtcConnect: any = {};
-    // 配信モード 相互：mutual  配信：delivery 受信：reception
-    private videoMode: string = 'mutual';
+    private webRtcMode: any = {};
+    // 配信モード 配信：contributor 受信：listener
+    private videoMode: string = 'listener';
 
     private MAX_CONNECTION = 3;
     private dataOptions: any = {
       ordered:  true,
       maxRetransmitTime:  3000,
       iceServers: [
-        {'url': 'stun:tokumorikun.com:3478'}
+        {urls: 'stun:stun2.l.google.com:19302'}
       ]
     };
 
@@ -36,7 +39,14 @@ export class WebRTCService {
         private subjectService: SubjectsService
     ) {}
 
-    public startRecord(): void {
+    /**
+     * 録画開始
+     * @param time 録画時間
+     * デフォルトで録画時間は10秒
+     * コーデックはvp9
+     * ビットレート　512kにて録画される
+     */
+    public startRecord(time: number = 1000): void {
       const options = {
         videoBitsPerSecond : 512000,
         mimeType : 'video/webm; codecs=vp9'
@@ -45,8 +55,11 @@ export class WebRTCService {
       this.recorder.ondataavailable = (result) => {
         this.recordData.push(result.data);
       };
-      this.recorder.start(1000);
+      this.recorder.start(time);
     }
+    /**
+     * 録画停止
+     */
     public stopRecord(): void {
       this.recorder.onstop =  (result) => {
         this.recorder = null;
@@ -54,9 +67,16 @@ export class WebRTCService {
       this.recorder.stop();
     }
 
+    /**
+     * 録画映像の再生先登録
+     * @param target 録画再生ターゲットDOM
+     */
     public setRecordePlayer(target): void {
       this.recordeTarget = target;
     }
+    /**
+     * 録画の再生
+     */
     public plyaRecord(): void {
       const videoBlob = new Blob(this.recordData, { type: 'video/webm'});
       this.recordeURL = window.URL.createObjectURL(videoBlob);
@@ -69,9 +89,70 @@ export class WebRTCService {
       this.recordeTarget.play();
     }
 
+    /**
+     * 録画データのDL用URL取得
+     */
     public getRecordeURL(): string {
       return this.recordeURL;
     }
+
+    /**
+     * ローカルストリームの取得
+     */
+    public getLocalStream(vmode: any = null, amode: boolean = false): Promise<boolean> {
+      return new Promise((resolve, reject) => {
+        const mode = this.checkStreamMode(vmode, amode);
+        navigator.mediaDevices.getUserMedia({
+          video: mode.video,
+          // video: {facingMode: 'user'},
+          audio: mode.audio
+        }).then((stream: MediaStream) => {
+          // this.localStream = stream;
+          this.setStream('local', stream);
+          resolve(true);
+        }).catch((error) => {
+          console.log(error);
+          reject(false);
+        });
+      });
+   }
+
+   public getRandomString(len, charSet: string = null): string {
+    charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let randomString = '';
+    for (let i = 0; i < len; i++) {
+        const randomPoz = Math.floor(Math.random() * charSet.length);
+        randomString += charSet.substring(randomPoz, randomPoz + 1);
+    }
+    return randomString;
+   }
+
+   public getRandomNumber(len, charSet: string = null): number {
+    charSet = charSet || '0123456789';
+    let randomString = '';
+    for (let i = 0; i < len; i++) {
+        const randomPoz = Math.floor(Math.random() * charSet.length);
+        randomString += charSet.substring(randomPoz, randomPoz + 1);
+    }
+    return Number(randomString);
+   }
+
+   private checkStreamMode(vmode, amode): any {
+      let v = null;
+      const a = amode;
+      if (typeof(vmode) === 'boolean' || vmode === null) {
+        if (vmode === null) {
+          v = true;
+        } else {
+          v = vmode;
+        }
+      } else {
+        v = {
+          mediaSource: vmode
+        };
+      }
+      return {video: v, audio: a};
+   }
 
 
     private getConnectionCount(): number {
@@ -139,12 +220,22 @@ export class WebRTCService {
      * webrtcの接続モードが設定とあっているか確認
      * @param check_mode webrtcの接続モード
      * 接続モード
-     * mutual：相互接続
-     * reception：受信専用
-     * delivery：配信専用
+     * listener：受信専用
+     * contributor：配信専用
      */
     public checkMode(check_mode): boolean {
       if (check_mode.includes(this.videoMode)) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    /**
+     * GetUserMediaに対応しているか
+     */
+    public checkScreenShare(): boolean {
+      if (typeof(navigator['getUserMedia']) === 'function') {
         return true;
       } else {
         return false;
@@ -161,12 +252,17 @@ export class WebRTCService {
     public setRemoteVideoTarget(element, id): void {
       this.RemoteVideoTarget[id] = element;
     }
+    public setContributorTarget(element): void {
+      this.ContributeVideoTarget = element;
+      console.log(this.ContributeVideoTarget);
+    }
     public setVideoMode(mode): void {
       this.videoMode = mode;
     }
     public getVideoMode(): string {
       return this.videoMode;
     }
+
 
     /**
      * ストリームデータを変数に格納
@@ -191,13 +287,18 @@ export class WebRTCService {
       if (element === 'local') {
         videoTarget = this.LocalVideoTarget;
         videoTarget.srcObject = this.LocalStream;
-      } else {
+        videoTarget.volume = 0;
+      } else if (element === 'contributor')  {
+        videoTarget = this.ContributeVideoTarget;
+        videoTarget.srcObject = this.ContributeStream;
+      } else if (element === 'remote') {
+        // 自身が配信者、相互通信中の場合
         videoTarget = this.RemoteVideoTarget[id];
         videoTarget.srcObject = this.RemoteStream[id];
       }
 
       videoTarget.play();
-      videoTarget.volume = 0;
+      // videoTarget.volume = 0;
     }
 
     /**
@@ -214,18 +315,25 @@ export class WebRTCService {
       }
       if ('ontrack' in peer) {
         peer.ontrack = (event) => {
-          this.RemoteStream[id] = event.streams[0];
-          this.playVideo('remote', id);
+          // this.RemoteStream[id] = event.streams[0];
+          // this.playVideo('remote', id);
+          this.ContributeStream = event.streams[0];
+          this.playVideo('contributor');
         };
       } else {
-        if (this.checkMode(['mutual', 'reception'])) {
+        if (this.checkMode(['listener'])) {
           peer.onaddstream = (event) => {
-            this.RemoteStream[id] = event.stream;
+            console.log('Start Play Screen');
+            this.ContributeStream = event.streams[0];
+            this.playVideo('contributor');
+          };
+        } else if (this.checkMode(['contributor'])) {
+          peer.onaddstream = (event) => {
+            this.RemoteStream[id] = event.streams[0];
             this.playVideo('remote', id);
           };
         }
       }
-
       peer.onicecandidate = (evt) => {
         if (evt.candidate) {
           this.sendIceCandidate(evt.candidate, id);
@@ -234,16 +342,16 @@ export class WebRTCService {
         }
       };
 
-      peer.oniceconnectionstatechange = function() {
+      peer.oniceconnectionstatechange = () => {
         console.log('== ice connection status=' + peer.iceConnectionState);
         if (peer.iceConnectionState === 'disconnected') {
           console.log('-- disconnected --');
-          this.hangUp();
+          this.hungUp();
         }
       };
 
       if (this.LocalStream) {
-        if (this.checkMode(['mutual', 'delivery'])) {
+        if (this.checkMode(['contributor'])) {
           console.log('Add local stream');
           peer.addStream(this.LocalStream);
         }
@@ -261,7 +369,7 @@ export class WebRTCService {
     public onSdpText(sdp: any, id: any): void {
       // オファーの受け取り
       if (sdp['type'] === 'offer') {
-        if (this.checkMode(['mutual', 'reception'])) {
+        if (this.checkMode(['contributor', 'listener'])) {
           console.log('Receive offer');
           sdp = this.sdpStripper(sdp);
           const offer = new RTCSessionDescription(sdp);
@@ -269,7 +377,8 @@ export class WebRTCService {
         }
       // アンサーの受け取り
       } else if (sdp['type'] === 'answer') {
-        if (this.checkMode(['mutual', 'delivery'])) {
+        console.log('Receive answer');
+        if (this.checkMode(['contributor', 'listener'])) {
           console.log('Receive answer');
           const answer = new RTCSessionDescription(sdp);
           this.setAnswer(answer, id);
@@ -349,7 +458,7 @@ export class WebRTCService {
           }
           if (sdp[key].match(codec_check) !== null) {
             index.push(this.stlipCodecIndex(sdp[key]));
-          }
+　        }
         }
       }
       const apt_check = index.join('|');
@@ -366,12 +475,19 @@ export class WebRTCService {
       return index;
     }
 
+    /**
+     * SDPからコーデック情報を取得
+     * @param codec コーデック
+     */
     private stlipCodecIndex(codec): number {
       const _co = codec.split(' ');
       const _co2 = _co[0].split(':');
       return Number(_co2[1]);
     }
 
+    /**
+     * @param sdp
+     */
     private stplipAPTIndex(sdp): number {
       const _apt = sdp.split(' ');
       const _apt2 = _apt[0].split(':');
@@ -422,6 +538,7 @@ export class WebRTCService {
      * @param sessionDescription ice情報を含めたSDP
      */
     private setIceCandidate(sessionDescription, id): void {
+      console.log(this.webRtcConnect[id]);
       if (! this.webRtcConnect[id]) {
         console.error('PeerConnection not exist');
         return;
@@ -448,6 +565,7 @@ export class WebRTCService {
     public setNullID(id): void {
       if (! this.webRtcConnect[id]) {
         this.webRtcConnect[id] = {};
+        this.webRtcMode[id] = {};
       }
     }
     /**
@@ -457,9 +575,10 @@ export class WebRTCService {
      */
     public makeOffer(id): void {
       let options = {};
-      if (this.videoMode === 'delivery') {
+      if (this.videoMode === 'contributor') {
+        console.log(this.videoMode);
         options = {
-          'mandatory': {
+          mandatory: {
             'OfferToReceiveAudio': false,
             'OfferToReceiveVideo': false
           }
@@ -470,6 +589,7 @@ export class WebRTCService {
         this.webRtcConnect[id].createOffer((offer) => {
           this.webRtcConnect[id].setLocalDescription(offer)
           .then(() => {
+            console.log(offer);
               this.publish(id, offer);
           });
         }, (error) => {
@@ -479,6 +599,7 @@ export class WebRTCService {
         console.log('peer already exist');
       }
     }
+
     /**
      * アンサー作成
      * 自身のPeerConnectionが済んでいること
