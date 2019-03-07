@@ -1,9 +1,12 @@
 
 export * from './mouse.service';
 export * from './websocket.service';
-export * from './webrtc.service';
 export * from './image.service';
 
+// WebRtc
+export * from './webrtc.service';
+export * from './webrtc/recorder.service';
+export * from './webrtc/sdp.service';
 
 // Main Service
 export * from './subjects.service';

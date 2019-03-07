@@ -143,6 +143,10 @@ export class ScreenComponent implements OnInit {
         .subscribe((msg: any) => {
             this.webrtcManager(msg);
         });
+        this.subjectService.on('on_dchannel')
+        .subscribe((msg: any) => {
+            this.socketHub(msg);
+        });
         this.subjectService.on('on_' + this.roomname)
             .subscribe((msg: any) => {
                 if (this.mode === 'contributor' && msg['msg'] === 'new_client') {
@@ -165,7 +169,7 @@ export class ScreenComponent implements OnInit {
                 this.roomid = msg['data'];
             }
         } else if (msg['msg'] === 'text') {
-            // console.log(msg);
+            console.log(msg);
             this.textService.addChat(msg['data']);
         } else if (msg['msg'] === 'draw') {
             this.pointer(msg['data']['position']);
@@ -233,17 +237,15 @@ export class ScreenComponent implements OnInit {
             color: this.userColor,
             userid: ''
         });
-        this.websocketService.send(
-            this.roomname,
-            {
-                msg: 'text',
-                data: {
-                    name: this.name,
-                    text: this.chatMess,
-                    tstamp: this.textService.getTimeStamp()
-                }
+        const data = {
+            msg: 'text',
+            data: {
+                name: this.name,
+                text: this.chatMess,
+                tstamp: this.textService.getTimeStamp()
             }
-        );
+        };
+        this.webrtcService.sendData(JSON.stringify(data));
         this.chatMess = '';
     }
 
@@ -328,7 +330,14 @@ export class ScreenComponent implements OnInit {
             this.mouseService.mouseMove(e);
             const position = this.buildDrawStatus(this.mouseService.getMousePosition());
             this.pointer(position);
-            this.websocketService.send(
+            const data = {
+                msg: 'draw',
+                data: {
+                    'position': position
+                }
+            };
+            this.webrtcService.sendData(JSON.stringify(data));
+            /*this.websocketService.send(
                 this.roomname,
                 {
                     msg: 'draw',
@@ -336,7 +345,7 @@ export class ScreenComponent implements OnInit {
                         'position': position
                     }
                 }
-            );
+            );*/
         }
     }
 
@@ -619,6 +628,7 @@ export class ScreenComponent implements OnInit {
                     this.hub();
                     // websocket 接続開始
                     this.roomid = Number(this.roomname);
+                    this.room = this.roomid;
                     this.setupSocket();
                     // スクリーンイベント登録
                     this.setMouseEvent();

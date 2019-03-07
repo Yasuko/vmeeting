@@ -13,8 +13,10 @@ import { AlertComponent, ConfirmationComponent, LoadingComponent } from './_lib_
 
 import { MessageService } from './message/message.service';
 import {
-   WebSocketService, WebRTCService, ImageService,
-   MouseService, FileService
+   WebSocketService, ImageService,
+   MouseService, FileService,
+   WebRTCService, RecorderService,
+   SDPService
 } from './service';
 import { ImageSaveService } from './_lib_service';
 
@@ -48,7 +50,7 @@ import {
     MessageService,
     WebSocketService,
     MouseService,
-    WebRTCService,
+    WebRTCService, RecorderService, SDPService,
     ImageService,
     TextService, UserService, ContentService, DrawService,
     StoryService, FileService,
