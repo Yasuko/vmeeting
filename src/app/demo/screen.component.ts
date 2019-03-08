@@ -131,13 +131,11 @@ export class ScreenComponent implements OnInit {
         });
         this.subjectService.on('pub_file_send')
         .subscribe((msg: any) => {
-            this.websocketService.send(
-                this.roomname,
-                {
-                    msg: 'file_send',
-                    data: msg
-                }
-            );
+            const data = {
+                msg: 'file_send',
+                data: msg
+            };
+            this.webrtcService.sendData(JSON.stringify(data));
         });
         this.subjectService.on('on_webrtc')
         .subscribe((msg: any) => {
@@ -176,8 +174,17 @@ export class ScreenComponent implements OnInit {
             // console.log(msg);
         } else if (msg['msg'] === 'file_send') {
             this.fileService.addRemoteFile(msg['data']);
+            const data = {
+                msg: 'sys',
+                state: 'file_get'
+            };
+            this.webrtcService.sendData(JSON.stringify(data));
         } else if (msg['msg'] === 'webrtc') {
             this.webrtcManager(msg);
+        } else if (msg['msg'] === 'sys') {
+            if (msg['state'] === 'file_get') {
+                this.fileService.checkSend();
+            }
         }
     }
 

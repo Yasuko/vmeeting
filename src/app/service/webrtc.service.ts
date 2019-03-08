@@ -280,18 +280,21 @@ export class WebRTCService {
         videoTarget.play();
     }
 
-    public sendData(data): void {
-        console.log(this.SendDataConnect);
-        for (const key in this.SendDataConnect) {
-            if (this.SendDataConnect.hasOwnProperty(key)) {
-                try {
-                    console.log('Do Send Data' + data);
-                    this.SendDataConnect[key].send(data);
-                } catch (error) {
-                    console.error('Data Send ERROR : ' + error);
+    public sendData(data): Promise<boolean> {
+        return new Promise((resolve) => {
+            // console.log(this.SendDataConnect);
+            for (const key in this.SendDataConnect) {
+                if (this.SendDataConnect.hasOwnProperty(key)) {
+                    try {
+                        // console.log('Do Send Data' + data);
+                        this.SendDataConnect[key].send(data);
+                    } catch (error) {
+                        console.error('Data Send ERROR : ' + error);
+                    }
                 }
             }
-        }
+            resolve(true);
+        });
     }
 
     /**

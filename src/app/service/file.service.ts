@@ -11,6 +11,8 @@ export class FileService {
     private images = [];
     private files = [];
 
+    private sendStack = [];
+
     private Reader: FileReader = null;
     private sizeLimit = 5000000;
 
@@ -41,6 +43,7 @@ export class FileService {
                             counter++;
                             if (count === counter) {
                                 resolve(true);
+                                this.sendFile();
                             }
                         });
                     }
@@ -62,7 +65,7 @@ export class FileService {
                     } else {
                         this.addFile(_file, type, file.name, file.size);
                     }
-                    this.sendFile(_file, type, file.name, file.size);
+                    this.sddSendStack(_file, type, file.name, file.size);
                     resolve(true);
                 };
                 this.Reader.readAsDataURL(file);
@@ -160,10 +163,22 @@ export class FileService {
         this.images.push(_file);
     }
 
-    private sendFile(file, type, name, size): void {
-        console.log(name);
+    public checkSend(): void {
+        if (Object.keys(this.sendStack).length > 0) {
+            this.sendFile();
+        }
+    }
+
+    private sendFile(): void {
         this.subjectService.publish(
             'pub_file_send',
+            this.sendStack.shift()
+        );
+    }
+
+    private sddSendStack(file, type, name, size): void {
+        console.log(name);
+        this.sendStack.push(
             {
                 data: file,
                 type: type,

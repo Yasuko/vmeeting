@@ -23,7 +23,6 @@ https://yasukosan.dip.jp/vmeet/
 準備完了後に表示される8桁のROOM番号が
 クライアントアドレスの引数になる
 
-
 ■配信側アドレス
 https://yasukosan.dip.jp/vmeet/?room=生成されたROOM番号
 
@@ -32,32 +31,28 @@ https://yasukosan.dip.jp/vmeet/?room=生成されたROOM番号
 ----
 ## Build（開発）
 ----
-コードのダウンロード後に、プロジェクトフォルダ内で
+開発環境
+- Angular：6.0以上
+- Mongodb：
+- NodeJs ：5.6以上
+- Httpサーバー（静的コンテンツ参照用）
+<br>
+※Angularのビルドオプションで全てnodejsで動かす場合は不要
+- HTTPS接続環境（UserMediaの取得にHTTPS環境必須）
 
-`npm update`
 
-を実行し関連パッケージのインストール
-その後
+ダウンロード後に、プロジェクトフォルダ内で
+
+`npm install`
+
+関連パッケージがインストールされる<br>
+インストール完了後
 
 `npm start`
 
-を実行することでサーバーとクライアントがビルドされる
-各機能は下記ポートにてアクセス可能
-クライアント「http://localhost:4200」
-サーバー    「http://localhost:3000」
+サーバーとクライアントがビルドされる<br>
+ブラウザより下記にアクセス<br>
+静的コンテンツ  ：https://localhost/プロジェクト/dist/<br>
+websocket    　：https://localhost:3000<br>
 
-----
-## Build（公開）
-----
-- Apache、nginx等の静的コンテンツ配信
-- websocket用node.js
-- クライアント保持用mongodb
-以上を満たす必要あり
-
-nodejs側は
-- mongoose
-- express
-- cors
-- socket.io
-パッケージが参照可能なこと
 
