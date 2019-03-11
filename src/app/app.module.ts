@@ -16,7 +16,9 @@ import {
    WebSocketService, ImageService,
    MouseService, FileService,
    WebRTCService, RecorderService,
-   SDPService
+   SDPService,
+   SupportService,
+   PeerService
 } from './service';
 import { ImageSaveService } from './_lib_service';
 
@@ -51,6 +53,7 @@ import {
     WebSocketService,
     MouseService,
     WebRTCService, RecorderService, SDPService,
+    SupportService, PeerService,
     ImageService,
     TextService, UserService, ContentService, DrawService,
     StoryService, FileService,

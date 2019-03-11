@@ -1,20 +1,9 @@
 import { Injectable } from '@angular/core';
-import { SubjectsService } from './subjects.service';
-import {
-    RecorderService, SDPService,
-    PeerService
-} from './';
+import { SubjectsService } from '../subjects.service';
+import { SDPService } from '../';
 
 @Injectable()
-export class WebRTCService {
-
-    private LocalVideoTarget: any;
-    private RemoteVideoTarget: any = {};
-    private ContributeVideoTarget: any = null;
-
-    private LocalStream: any = null;
-    private RemoteStream: any = {};
-    private ContributeStream: any = null;
+export class PeerService {
 
     private webRtcConnect: any = {};
     private ReciveDataConnect: any = {};
@@ -37,104 +26,7 @@ export class WebRTCService {
     };
     constructor(
         private subjectService: SubjectsService,
-        private recordeService: RecorderService,
-        private peerService: PeerService,
-        private sdpService: SDPService
     ) { }
-
-    /**
-     * 録画開始
-     * @param time 録画時間
-     */
-    public startRecord(time: number = 1000): void {
-        this.recordeService.startRecord(time);
-    }
-    /**
-     * 録画停止
-     */
-    public stopRecord(): void {
-        this.recordeService.stopRecord();
-    }
-    /**
-     * 録画映像の再生先登録
-     * @param target 録画再生ターゲットDOM
-     */
-    public setRecordePlayer(target): void {
-        this.recordeService.setRecordePlayer(target);
-    }
-    /**
-     * 録画の再生
-     */
-    public plyaRecord(): void {
-        this.recordeService.plyaRecord();
-    }
-
-    /**
-     * 録画データのDL用URL取得
-    */
-    public getRecordeURL(): string {
-        return this.recordeService.getRecordeURL();
-    }
-
-    /**
-     * ローカルストリームの取得
-     */
-    public getLocalStream(vmode: any = null, amode: boolean = false): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-                const mode = this.checkStreamMode(vmode, amode);
-                navigator.mediaDevices.getUserMedia({
-                video: mode.video,
-                // video: {facingMode: 'user'},
-                audio: mode.audio
-            }).then((stream: MediaStream) => {
-                // this.localStream = stream;
-                console.log('Set Local Stream');
-                this.setStream('local', stream);
-                resolve(true);
-                }).catch((error) => {
-                console.log(error);
-                reject(false);
-            });
-        });
-    }
-
-    public getRandomString(len, charSet: string = null): string {
-        charSet = charSet || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let randomString = '';
-        for (let i = 0; i < len; i++) {
-            const randomPoz = Math.floor(Math.random() * charSet.length);
-            randomString += charSet.substring(randomPoz, randomPoz + 1);
-        }
-        return randomString;
-    }
-
-    public getRandomNumber(len, charSet: string = null): number {
-        charSet = charSet || '0123456789';
-        let randomString = '';
-        for (let i = 0; i < len; i++) {
-            const randomPoz = Math.floor(Math.random() * charSet.length);
-            randomString += charSet.substring(randomPoz, randomPoz + 1);
-        }
-        return Number(randomString);
-    }
-
-    private checkStreamMode(vmode, amode): any {
-        let v = null;
-        const a = amode;
-        if (typeof (vmode) === 'boolean' || vmode === null) {
-            if (vmode === null) {
-                v = true;
-            } else {
-                v = vmode;
-            }
-        } else {
-            v = {
-                mediaSource: vmode
-            };
-        }
-        return { video: v, audio: a };
-    }
-
 
     private getConnectionCount(): number {
         return this.webRtcConnect.length;
@@ -199,89 +91,12 @@ export class WebRTCService {
         return true;
     }
 
-    /**
-     * webrtcの接続モードが設定とあっているか確認
-     * @param check_mode webrtcの接続モード
-     * 接続モード
-     * listener：受信専用
-     * contributor：配信専用
-     */
-    public checkMode(check_mode): boolean {
-        if (check_mode.includes(this.videoMode)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
 
-    /**
-     * GetUserMediaに対応しているか
-     */
-    public checkScreenShare(): boolean {
-        if (typeof (navigator['getUserMedia']) === 'function') {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * ビデオタグのDOMオブジェクトを登録
-     * @param local ローカル用ビデオタグ
-     */
-    public setVideoTarget(local): void {
-        this.LocalVideoTarget = local;
-    }
-    public setRemoteVideoTarget(element, id): void {
-        this.RemoteVideoTarget[id] = element;
-    }
-    public setContributorTarget(element): void {
-        this.ContributeVideoTarget = element;
-        console.log(this.ContributeVideoTarget);
-    }
     public setVideoMode(mode): void {
         this.videoMode = mode;
     }
     public getVideoMode(): string {
         return this.videoMode;
-    }
-
-
-    /**
-     * ストリームデータを変数に格納
-     * @param target ローカルかリモートか
-     * @param stream 映像ストリーム
-     */
-    public setStream(target, stream): void {
-        if (target === 'local') {
-            this.LocalStream = stream;
-        } else if (target === 'remote') {
-            // 現在未使用
-            // this.RemoteStream = stream;
-        }
-    }
-
-    /**
-     * ビデオ再生
-     * @param element ローカル映像かリモート映像か
-     * @param id クライアントID
-     */
-    public playVideo(element, id = 0) {
-        let videoTarget: any = '';
-        if (element === 'local') {
-            videoTarget = this.LocalVideoTarget;
-            videoTarget.srcObject = this.LocalStream;
-            videoTarget.volume = 0;
-        } else if (element === 'contributor') {
-            videoTarget = this.ContributeVideoTarget;
-            videoTarget.srcObject = this.ContributeStream;
-        } else if (element === 'remote') {
-            // 自身が配信者、相互通信中の場合
-            videoTarget = this.RemoteVideoTarget[id];
-            videoTarget.srcObject = this.RemoteStream[id];
-        }
-        // ストリーム再生
-        videoTarget.play();
     }
 
     public sendData(data): Promise<boolean> {
@@ -313,29 +128,7 @@ export class WebRTCService {
         } catch (error) {
             console.log('Failed to create PeerConnection', error);
         }
-        if ('ontrack' in peer) {
-            peer.ontrack = (event) => {
-                if (this.checkMode(['listener'])) {
-                    this.ContributeStream = event.streams[0];
-                    this.playVideo('contributor');
-                } else {
-                    this.RemoteStream[id] = event.streams[0];
-                    this.playVideo('remote', id);
-                }
-            };
-        } else {
-            peer.onaddstream = (event) => {
-                if (this.checkMode(['listener'])) {
-                    console.log('Start Play Screen');
-                    this.ContributeStream = event.streams[0];
-                    this.playVideo('contributor');
-                } else if (this.checkMode['contributor']) {
-                    console.log('Start Remote Audio');
-                    this.RemoteStream[id] = event.streams[0];
-                    this.playVideo('remote', id);
-                }
-            };
-        }
+
         peer.onicecandidate = (evt) => {
             if (evt.candidate) {
                 this.sendIceCandidate(evt.candidate, id);
@@ -352,15 +145,6 @@ export class WebRTCService {
             }
         };
 
-        // ローカルストリームの追加
-        if (this.LocalStream) {
-            // if (this.checkMode(['contributor'])) {
-            console.log('Add local stream');
-            peer.addStream(this.LocalStream);
-            // }
-        } else {
-            console.warn('no local stream');
-        }
 
         // データちゃんねる追加
         try {
@@ -395,48 +179,10 @@ export class WebRTCService {
     }
 
     /**
-     * websocketからイベント受け取り
-     * @param tag イベント名
-     */
-    public onSdpText(sdp: any, id: any): void {
-        // オファーの受け取り
-        if (sdp['type'] === 'offer') {
-            if (this.checkMode(['contributor', 'listener'])) {
-                console.log('Receive offer');
-                sdp = this.sdpStripper(sdp);
-                const offer = new RTCSessionDescription(sdp);
-                this.setOffer(offer, id);
-            }
-        // アンサーの受け取り
-        } else if (sdp['type'] === 'answer') {
-            console.log('Receive answer');
-            if (this.checkMode(['contributor', 'listener'])) {
-                console.log('Receive answer');
-                const answer = new RTCSessionDescription(sdp);
-                this.setAnswer(answer, id);
-            }
-        // アイスの受け取り
-        } else if (sdp['type'] === 'candidate') {
-            console.log('Received ICE candidate');
-            const candidate = new RTCIceCandidate(sdp['data']);
-            this.setIceCandidate(candidate, id);
-        }
-    }
-
-    /**
-     * SDP情報から不要なコーデック情報を削除し再パッケージする
-     * @param sdp SDP
-     * 現在固定機能で「VP8」「VP9」を削除
-     */
-    private sdpStripper(sdp): object {
-        return this.sdpService.sdpStripper(sdp);
-    }
-
-    /**
      * リモートから帰ってきたアンサーSDPをPeerConnectionに登録
      * @param sessionDescription リモートのSDP
      */
-    private setAnswer(sessionDescription, id): void {
+    public setAnswer(sessionDescription, id): void {
         if (!this.webRtcConnect[id]) {
             console.error('peerConnection Not exist');
             return;
@@ -448,7 +194,7 @@ export class WebRTCService {
      * リモートから送られてきたオファーSDPをPeerConnectionに登録
      * @param sessionDescription リモートのSDP
      */
-    private setOffer(sessionDescription, id): void {
+    public setOffer(sessionDescription, id): void {
         if (this.webRtcConnect[id]) {
             console.error('peerConnection already exist');
         }
@@ -461,7 +207,7 @@ export class WebRTCService {
      * @param id websocketのセッションID
      * @param sessionDescription SDP情報
      */
-    private setRemoteDescription(id, sessionDescription): void {
+    public setRemoteDescription(id, sessionDescription): void {
         this.webRtcConnect[id].setRemoteDescription(sessionDescription)
             .then(() => {
                 console.log('setremoveDescription success');

@@ -768,7 +768,7 @@ export class ScreenComponent implements OnInit {
                     if (result['mode'] === 'contributor') {
                         console.log('Screen On');
                         this.addScreenElement(result['id']);
-                    } else {
+                    } else if (result['mode'] === 'listener') {
                         this.addAudioElement(result['id']);
                     }
                 }
