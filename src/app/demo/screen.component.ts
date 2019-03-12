@@ -91,6 +91,12 @@ export class ScreenComponent implements OnInit {
     };
 
     public roomname = '';
+    /**
+     * contributor  : 映像・音声の配信
+     * video        : 映像のみ
+     * audio        : 音声の配信
+     * listener     : 視聴のみ
+     *  */
     public mode = 'contributor';
 
     public showBitrate = 0;
@@ -188,12 +194,32 @@ export class ScreenComponent implements OnInit {
         }
     }
 
+    /**
+     * 部屋名が設定されている場合クライアント処理開始
+     */
     private setRoomName(): void {
+        this.webrtcService.checkMediaDevice();
         const room = this.router.snapshot.queryParams;
         if (room.hasOwnProperty('room')) {
             console.log(room);
             this.roomname = room['room'];
-            // ゲスト接続の場合にroomname要求
+            // ゲストの接続モード判定
+            this.setVideoMode();
+        }
+    }
+
+    private setVideoMode(): void {
+        if (this.webrtcService.checkMediaDevice()) {
+            this.webrtcService.checkMediaDevice().then(
+                (result) => {
+                    if (result['audio']) {
+                        this.mode = 'audio';
+                    } else {
+                        this.mode = 'listener';
+                    }
+                }
+            );
+        } else {
             this.mode = 'listener';
         }
     }
@@ -356,24 +382,6 @@ export class ScreenComponent implements OnInit {
         }
     }
 
-
-    /**
-     * キャンバスに絵を書く
-     * @param mouse_position array
-     */
-    private draw(mouse_position): void {
-        this.ctx.beginPath();
-        this.ctx.moveTo(
-            mouse_position['startx'], mouse_position['starty']
-        );
-        this.ctx.lineTo(
-            mouse_position['movex'], mouse_position['movey']
-        );
-        this.ctx.lineCap = mouse_position['linecap'];
-        this.ctx.lineWidth = mouse_position['linewidth'];
-        this.ctx.strokeStyle = mouse_position['linecolor'];
-        this.ctx.stroke();
-    }
     /**
      * マウスカーソルの表示
      * @param mouse_position array
@@ -549,6 +557,9 @@ export class ScreenComponent implements OnInit {
         }
     }
 
+    /**
+     * 部屋名入力後の共有画面取得開始
+     */
     public preShareScreen(): void {
         // Create a new room
         this.contentService.changeState('ScreenMenu', false);
@@ -560,12 +571,9 @@ export class ScreenComponent implements OnInit {
         }
         this.title = this.desc;
 
-        // this.capture = 'screen';
-
         // ブラウザがgetUserMediaに対応しているか判定
         if (this.webrtcService.checkScreenShare()) {
             this.contentService.changeState('ScreenSelect', true);
-            // Firefox needs a different constraint for screen and window sharing
         } else {
             alert('Not Support');
         }
@@ -587,12 +595,22 @@ export class ScreenComponent implements OnInit {
         this.room = this.roomid;
         this.myusername = this.name;
 
-        if (this.mode === 'listener') {
+        if (this.mode === 'audio') {
             return new Promise((resolve) => {
-                this.webrtcService.getLocalStream(false, true)
-                .then((result) => {
-                    resolve(result);
-                });
+                if (this.webrtcService.checkScreenShare()) {
+                    this.webrtcService.getLocalStream(false, true)
+                    .then((result) => {
+                        resolve(result);
+                    });
+                } else {
+                    resolve(false);
+                }
+            });
+        } else {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(false);
+                }, 10);
             });
         }
     }
@@ -623,11 +641,11 @@ export class ScreenComponent implements OnInit {
         this.userColor = this.userService.getColor();
         this.contentService.showStartSequence();
 
-        if (this.mode === 'listener') {
+        if (this.mode === 'listener' || this.mode === 'audio') {
             // ローカルストリーム表示
             this.contentService.showListenerSequence();
             console.log('Setup Websocket Client Mode');
-            this.webrtcService.setVideoMode('listener');
+            this.webrtcService.setVideoMode(this.mode);
 
             this.joinScreen()
                 .then((result) => {
@@ -646,6 +664,10 @@ export class ScreenComponent implements OnInit {
                 });
 
         } else if (this.mode === 'contributor') {
+            if (!this.webrtcService.checkScreenShare) {
+                this.AllReset();
+                alert('サポート対象外のブラウザです');
+            }
             this.webrtcService.setVideoMode('contributor');
             this.room = this.webrtcService.getRandomNumber(8);
             this.roomid = this.room;
@@ -735,7 +757,8 @@ export class ScreenComponent implements OnInit {
             this.roomname,
             {
                 'msg': 'webrtc',
-                'job': 'request_offer'
+                'job': 'request_offer',
+                'mode': this.mode
             }
         );
     }
@@ -763,12 +786,12 @@ export class ScreenComponent implements OnInit {
             const data = JSON.parse(result['data']);
             if ('id' in result) {
                 if (this.webrtcService.checkAuthConnection(result['id']) === true
-                    && this.webrtcService.checkMode(['listener'])
+                    && this.webrtcService.checkMode(['audio', 'listener'])
                 ) {
                     if (result['mode'] === 'contributor') {
                         console.log('Screen On');
                         this.addScreenElement(result['id']);
-                    } else if (result['mode'] === 'listener') {
+                    } else if (result['mode'] === 'audio') {
                         this.addAudioElement(result['id']);
                     }
                 }

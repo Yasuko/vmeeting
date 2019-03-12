@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 import { SubjectsService } from '../subjects.service';
-import { SDPService } from '../';
+import { SDPService } from '..';
 
 @Injectable()
-export class PeerService {
+export class PearService {
 
-    private webRtcConnect: any = {};
+    public webRtcConnect: any = {};
     private ReciveDataConnect: any = {};
     private SendDataConnect: any = {};
     private webRtcMode: any = {};
@@ -28,15 +28,15 @@ export class PeerService {
         private subjectService: SubjectsService,
     ) { }
 
-    private getConnectionCount(): number {
+    public getConnectionCount(): number {
         return this.webRtcConnect.length;
     }
 
-    private canConnectionMore(): boolean {
+    public canConnectionMore(): boolean {
         return (this.getConnectionCount() < this.MAX_CONNECTION);
     }
 
-    private isConnectedWith(id): boolean {
+    public isConnectedWith(id): boolean {
         if (!this.webRtcConnect[id]) {
             return false;
         } else {
@@ -99,28 +99,26 @@ export class PeerService {
         return this.videoMode;
     }
 
-    public sendData(data): Promise<boolean> {
-        return new Promise((resolve) => {
-            // console.log(this.SendDataConnect);
-            for (const key in this.SendDataConnect) {
-                if (this.SendDataConnect.hasOwnProperty(key)) {
-                    try {
-                        // console.log('Do Send Data' + data);
-                        this.SendDataConnect[key].send(data);
-                    } catch (error) {
-                        console.error('Data Send ERROR : ' + error);
-                    }
+    public sendData(data): boolean {
+        // console.log(this.SendDataConnect);
+        for (const key in this.SendDataConnect) {
+            if (this.SendDataConnect.hasOwnProperty(key)) {
+                try {
+                    // console.log('Do Send Data' + data);
+                    this.SendDataConnect[key].send(data);
+                } catch (error) {
+                    console.error('Data Send ERROR : ' + error);
                 }
             }
-            resolve(true);
-        });
+        }
+        return true;
     }
 
     /**
      * PeerConnection新規作成
      * @param id クライアントID
      */
-    private initPearConnection(id): any {
+    public initPearConnection(id): any {
         let peer: any = null;
         // PeerConnection新規作成
         try {
@@ -194,11 +192,11 @@ export class PeerService {
      * リモートから送られてきたオファーSDPをPeerConnectionに登録
      * @param sessionDescription リモートのSDP
      */
-    public setOffer(sessionDescription, id): void {
+    public setOffer(sessionDescription, id, peer): void {
         if (this.webRtcConnect[id]) {
             console.error('peerConnection already exist');
         }
-        this.addConnection(id, this.initPearConnection(id));
+        this.addConnection(id, peer);
         this.setRemoteDescription(id, sessionDescription);
     }
 
@@ -221,7 +219,7 @@ export class PeerService {
      * リモートから送られてきたICE情報をPeerConnectionに登録
      * @param sessionDescription ice情報を含めたSDP
      */
-    private setIceCandidate(sessionDescription, id): void {
+    public setIceCandidate(sessionDescription, id): void {
         // console.log(this.webRtcConnect[id]);
         if (!this.webRtcConnect[id]) {
             console.error('PeerConnection not exist');
@@ -257,19 +255,9 @@ export class PeerService {
      * peerconnectionの作成とイベントを登録し
      * 接続待受の準備が出来た後にオファー情報を作成
      */
-    public makeOffer(id): void {
-        let options = {};
-        if (this.videoMode === 'contributor') {
-            console.log(this.videoMode);
-            options = {
-                mandatory: {
-                'OfferToReceiveAudio': true,
-                'OfferToReceiveVideo': false
-                }
-            };
-        }
+    public makeOffer(id, options, peer): void {
         if (!this.webRtcConnect[id]) {
-            this.addConnection(id, this.initPearConnection(id));
+            this.addConnection(id, peer);
             this.webRtcConnect[id].createOffer((offer) => {
                 this.webRtcConnect[id].setLocalDescription(offer)
                 .then(() => {

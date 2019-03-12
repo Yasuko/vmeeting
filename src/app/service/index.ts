@@ -5,7 +5,7 @@ export * from './image.service';
 
 // WebRtc
 export * from './webrtc.service';
-export * from './webrtc/peer.service';
+export * from './webrtc/pear.service';
 export * from './webrtc/support.service';
 export * from './webrtc/recorder.service';
 export * from './webrtc/sdp.service';
